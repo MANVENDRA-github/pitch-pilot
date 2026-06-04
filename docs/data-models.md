@@ -19,6 +19,8 @@ These artifacts are produced and consumed as a run moves through the [pipeline](
 
 `Fact` is the atomic unit of grounded research and the keystone of the whole package. **A `Fact` cannot be constructed without a `source_url` that points at a real web page.** A `field_validator` on `source_url` strips the value and rejects it if it is empty or does not start with `http://` or `https://`, raising a `ValueError` in either case. Because validation runs at construction, an ungrounded `Fact` is unrepresentable: groundedness is enforced at the type boundary rather than bolted on by a later step. This is the structural foundation of the hero guarantee described in [groundedness.md](groundedness.md).
 
+Facts produced by the [research node](components/nodes.md) also carry an `evidence` snippet — a short verbatim excerpt from the source text that supports the claim. The extractor verifies the snippet actually appears in the source before building the `Fact`, so `evidence` is the anchor for the substring grounding check (see [groundedness.md](groundedness.md)).
+
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `claim` | `str` | required | A short factual statement, e.g. `"Acme raised a $20M Series B"`. |
@@ -26,6 +28,7 @@ These artifacts are produced and consumed as a run moves through the [pipeline](
 | `source_title` | `str \| None` | `None` | Human-readable title of the source page, if known. |
 | `category` | `str \| None` | `None` | Coarse bucket for the fact, e.g. `"overview"`, `"news"`, `"hiring"`, `"tech"`. |
 | `confidence` | `float` | `0.5` | Model/heuristic confidence in the claim. Constrained to `[0.0, 1.0]`. |
+| `evidence` | `str` | `""` (empty) | Short verbatim snippet (`<= 200` chars) from the source text supporting the `claim`. Populated for facts produced by the research extractor, which drops any candidate whose evidence is not found in the source. |
 
 ## SearchResult
 
@@ -76,6 +79,7 @@ These artifacts are produced and consumed as a run moves through the [pipeline](
 | `company` | `Company` | required | The company the research is about. |
 | `facts` | `list[Fact]` | `[]` (empty list) | The grounded facts discovered. |
 | `queries_run` | `list[str]` | `[]` (empty list) | The search queries actually executed, kept for transparency and for debugging the research loop. |
+| `errors` | `list[str]` | `[]` (empty list) | Non-fatal problems hit during research (a failed fetch, an empty search, an extraction error). The research node records these and continues rather than crashing. |
 
 `ResearchResult` also exposes a computed read-only property:
 
