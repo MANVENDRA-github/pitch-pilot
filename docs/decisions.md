@@ -87,3 +87,48 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   Contributors must keep docstrings rich (they are the reference) and follow the
   `CLAUDE.md` protocol. Two small extra dev dependencies are accepted to make the
   reference self-maintaining.
+
+## ADR-0006 — Research queries are chosen by the LLM, bounded by a hard budget
+
+- **Date:** 2026-06-05
+- **Status:** Accepted
+- **Context:** [ADR-0003](#adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop)
+  decided that agency is confined to the research sub-loop. P1 had to make that
+  concrete: how does the loop decide *what to do next*? A hardcoded list of
+  queries (`"{name} funding"`, `"{name} careers"`, …) is predictable but dumb — it
+  wastes the budget on dimensions that are already covered and never adapts to what
+  it has learned.
+- **Decision:** Make the loop genuinely agentic — the **LLM picks the next search
+  query**. Each iteration the planner is given the target dimensions, a summary of
+  facts gathered so far (and which dimensions are still thin), and the queries
+  already run; it returns `{"done", "reason", "next_query"}`. The loop stops on
+  `done: true` **or** when `len(queries_run) >= RESEARCH_MAX_QUERIES`. The budget
+  is a *hard cap* that always overrides the planner's wish to continue.
+- **Consequences:** The query sequence adapts to the company and to gaps in
+  coverage, which a fixed list cannot. Cost and latency stay bounded and
+  predictable because the budget caps the agentic choice. The trade-off is one
+  extra LLM call per iteration (planning) and prompts that must be kept stable, and
+  a defensive guard against the planner repeating a query.
+
+## ADR-0007 — Facts carry verbatim evidence, verified by a substring check
+
+- **Date:** 2026-06-05
+- **Status:** Accepted
+- **Context:** [`Fact`](data-models.md) requiring a `source_url`
+  ([ADR-0001](#adr-0001-a-fact-carries-its-source_url-by-construction)) proves a
+  claim *points* at a page, not that the page *says* it. An LLM asked to extract
+  facts from a page will happily blend in plausible claims from its own prior
+  knowledge and attach the page's URL to them — the most dangerous failure mode for
+  a groundedness-first product.
+- **Decision:** Extend `Fact` with an `evidence` field and have the extractor
+  require a short **verbatim** snippet for every claim, then verify that the snippet
+  actually appears in the source text (whitespace- and case-insensitive substring
+  match). Candidates whose evidence is not found are dropped and logged. See
+  [Groundedness → Layer 2](groundedness.md).
+- **Consequences:** Hallucinated claims are filtered at extraction time, before they
+  can ever reach a draft — groundedness is enforced where facts are *born*, not only
+  audited later. Reviewers get a quotable snippet per fact. The cost is some recall:
+  a correctly-extracted claim that paraphrases too loosely to match as a substring is
+  dropped. We accept lower recall for higher precision, consistent with
+  [ADR-0004](#adr-0004-no-auto-send-no-linkedin-scraping)'s "trustworthy beats
+  voluminous."
