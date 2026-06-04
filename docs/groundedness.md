@@ -1,6 +1,6 @@
 # Groundedness
 
-> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/models/fact.py`, `src/pitch_pilot/models/verification.py`
+> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/models/fact.py`, `src/pitch_pilot/nodes/research.py`, `src/pitch_pilot/models/verification.py`
 
 Groundedness is the hero feature. **No fact exists without a `source_url`, and no
 claim reaches a human without being checked against one.** This page explains how
@@ -35,13 +35,33 @@ start with `http://` or `https://`. An ungrounded fact is therefore
 drafting consumes them, every claim in the pipeline is born with a citation
 attached. See [Decisions → ADR-0001](decisions.md).
 
-## Layer 2 — Draft only from facts
+## Layer 2 — Evidence must appear in the source (the extractor check)
+
+A `source_url` proves a fact *points* at a page; it does not prove the page
+actually *says* it. The [research extractor](components/nodes.md) closes that gap.
+When it turns retrieved text into `Fact`s, it requires the model to copy a short
+verbatim `evidence` snippet for each claim, and then checks that the snippet is
+genuinely present in the source text — a whitespace- and case-insensitive
+substring match:
+
+```python
+if _normalize(evidence) not in _normalize(source_text):
+    # drop the candidate fact (and log it) — the source doesn't support it
+```
+
+Any candidate whose evidence is not found is **dropped and logged**. This is a
+cheap but effective anti-hallucination layer: it stops the model from smuggling in
+claims from its own prior knowledge, because such claims have no matching evidence
+in the page. Only claims the source text literally backs survive into the
+`ResearchResult`. See [Decisions → ADR-0007](decisions.md).
+
+## Layer 3 — Draft only from facts
 
 The [`draft_node`](pipeline.md) composes outreach **only from grounded `Fact`
 objects**. It does not free-associate from the model's parametric memory; the
 hooks it uses (`Draft.hooks_used`) map back to facts, and therefore to sources.
 
-## Layer 3 — Independent verification
+## Layer 4 — Independent verification
 
 After drafting, the [`verify_node`](pipeline.md) audits the draft and produces a
 [`VerificationResult`](data-models.md):
@@ -73,9 +93,11 @@ ungrounded claim is recorded in `flagged_claims` so a reviewer sees exactly what
 to check or cut.
 
 !!! note "Status"
-    The `Fact` contract (Layer 1) is implemented in P0. Claim extraction,
-    source-checking, and scoring (Layer 3) are implemented in
-    **[P3](roadmap.md)**; this page is the spec that implementation follows.
+    The `Fact` contract (Layer 1) is implemented in P0 and the extractor's
+    evidence-substring check (Layer 2) in **[P1](roadmap.md)**. Drafting from
+    facts (Layer 3) and the verification gate (Layer 4) — claim extraction,
+    source-checking, and scoring — are implemented in later phases; for those this
+    page is the spec the implementation follows.
 
 ## What the gate does — and doesn't — do
 
