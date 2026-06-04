@@ -8,8 +8,8 @@ a runnable state. Legend: ✅ done · 🟡 in progress · ⬜ planned.
 | Phase | Status | Delivers |
 | --- | --- | --- |
 | **P0 — Foundation** | ✅ done | Installable scaffold: typed contracts, swappable clients, fail-loud config, smoke test, unit tests, and this docs site. |
-| **P1 — Pipeline** | ⬜ planned (next) | The deterministic LangGraph outer graph and node functions (`research → qualify → draft → verify → log`) on top of `PipelineState`. |
-| **P2 — Agentic research** | ⬜ planned | The bounded ReAct research sub-loop: plan → search → fetch → extract grounded `Fact`s, capped by `RESEARCH_MAX_QUERIES`. |
+| **P1 — Agentic research** | ✅ done | The bounded, LLM-driven research loop (seed → plan → search → extract grounded `Fact`s, capped by `RESEARCH_MAX_QUERIES`), the `Fact.evidence` substring grounding check, a `research_node` graph adapter, and the `research` CLI command. |
+| **P2 — Pipeline** | ⬜ planned (next) | The deterministic LangGraph outer graph (`build_pipeline()`) and the remaining node functions (`qualify → draft → verify → log`) wired on top of `PipelineState`. |
 | **P3 — Verification & scoring** | ⬜ planned | Claim extraction, source-checking, the groundedness score, and the threshold gate that produces a `VerificationResult`. |
 | **P4 — Evaluation** | ⬜ planned | Labeled datasets, the metrics harness, and a published baseline (fills the [evals](evals.md) numbers table). |
 | **P5 — Storage & review app** | ⬜ planned | Production `Store` backends (HubSpot, Google Sheets) and a human-review UI over the queue (`app/`). |
