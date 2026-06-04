@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitch-pilot"
+version = "0.1.0"
+description = "An autonomous SDR agent that researches a company, qualifies it against an ICP, drafts grounded outreach, and verifies every claim against a source."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Manvendra" }]
+keywords = ["sdr", "agent", "langgraph", "outreach", "groundedness", "llm", "sales"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+# Runtime dependencies. Lower bounds reflect the current (2026) major lines:
+# the new unified google-genai SDK (1.x), Groq 1.x, LangGraph 1.x, pydantic v2.
+dependencies = [
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "langgraph>=1.0",
+    "google-genai>=1.0",
+    "groq>=1.0",
+    "tavily-python>=0.5",
+    "httpx>=0.27",
+    "selectolax>=0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+    # Documentation site: MkDocs Material + auto API reference from docstrings.
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+]
+
+[project.scripts]
+pitch-pilot = "pitch_pilot.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Manvendra/pitch-pilot"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
