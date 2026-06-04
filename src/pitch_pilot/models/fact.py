@@ -24,6 +24,12 @@ class Fact(BaseModel):
         category: Coarse bucket for the fact — e.g. ``"overview"``, ``"news"``,
             ``"hiring"``, ``"tech"``.
         confidence: Model/heuristic confidence in the claim, in ``[0, 1]``.
+        evidence: A short verbatim-ish snippet (``<= 200`` chars) copied from the
+            source text that supports the ``claim``. Required for facts produced
+            by the research extractor, which verifies that the snippet actually
+            appears in the source before constructing the fact (see the research
+            node). Defaults to an empty string for facts built from structured
+            data that carries no free-text excerpt.
     """
 
     claim: str
@@ -31,6 +37,11 @@ class Fact(BaseModel):
     source_title: str | None = None
     category: str | None = None
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    evidence: str = Field(
+        default="",
+        max_length=200,
+        description="Short verbatim snippet from the source text supporting the claim.",
+    )
 
     @field_validator("source_url")
     @classmethod
