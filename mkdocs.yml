@@ -1,0 +1,101 @@
+site_name: pitch-pilot
+site_description: An autonomous SDR agent that drafts grounded, source-cited outreach.
+site_author: Manvendra
+repo_url: https://github.com/Manvendra/pitch-pilot
+repo_name: Manvendra/pitch-pilot
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+    - search.suggest
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            docstring_section_style: table
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_source: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            filters: ["!^_"]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Concepts:
+      - Architecture: architecture.md
+      - Pipeline: pipeline.md
+      - Data Models: data-models.md
+      - Groundedness: groundedness.md
+  - Components:
+      - Clients: components/clients.md
+      - Graph: components/graph.md
+      - Nodes: components/nodes.md
+      - Storage: components/storage.md
+  - Evaluation: evals.md
+  - Project:
+      - Roadmap: roadmap.md
+      - Decisions (ADR): decisions.md
+      - Limitations: limitations.md
+      - Glossary: glossary.md
+      - Changelog: changelog.md
+  - API Reference: reference/
