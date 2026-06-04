@@ -7,7 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet — P1 (deterministic pipeline + nodes) is next._
+_Nothing yet — P2 (the deterministic pipeline graph + the qualify / draft / verify /
+log nodes) is next._
+
+## [0.2.0] — 2026-06-05
+
+**P1 — Agentic research.** The research node: given a domain, it gathers
+source-tagged, grounded `Fact`s across the dimensions an SDR cares about
+(overview, news, hiring, tech). The next search query is chosen by the LLM, not a
+fixed list — the loop is genuinely agentic, bounded by a hard query budget.
+
+### Added
+
+- `run_research(company, llm, search, settings)` — the agentic research loop:
+  seed-fetch the company site, then let the LLM planner choose each next search
+  query (`{"done", "reason", "next_query"}`) until it is satisfied or
+  `RESEARCH_MAX_QUERIES` is hit. Records non-fatal failures instead of crashing.
+- `extract_facts(...)` — the groundedness guard: extracts only claims the source
+  text supports, each with a verbatim `evidence` snippet, and drops any candidate
+  whose evidence is not a substring of the source (a cheap anti-hallucination
+  check). Capped per source.
+- `research_node(state)` — a thin LangGraph adapter that calls `run_research` and
+  returns `{"research": ResearchResult}`, ready for the pipeline to wire in.
+- `pitch-pilot research <domain>` CLI command — prints grounded facts grouped by
+  category (each with its source URL) and a summary line.
+- `Fact.evidence` — a short (`<= 200` char) verbatim snippet from the source text
+  supporting the claim.
+- `ResearchResult.errors` — non-fatal problems (failed fetch, empty search,
+  extraction error) collected during a research run.
+
+### Changed
+
+- Groundedness now has a second enforcement layer: evidence must appear in the
+  source (the extractor substring check), in addition to `Fact` requiring a
+  `source_url` by construction.
 
 ## [0.1.0] — 2026-06-05
 
