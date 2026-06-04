@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-05 · **Source files:** `README.md`, `.env.example`, `src/pitch_pilot/cli.py`
 
-This page takes you from a fresh clone to a passing smoke test. The current scaffold (P0) ships typed data contracts, swappable provider clients, typed config, a smoke test, and unit tests — so "running" pitch-pilot today means verifying that its three external dependencies (search, LLM, fetch) work with your keys. The LangGraph pipeline lands in P1.
+This page takes you from a fresh clone to a passing smoke test and a first research run. On top of the P0 scaffold (typed contracts, swappable provider clients, typed config, a smoke test, and unit tests), P1 adds the agentic research node — so "running" pitch-pilot today means verifying that its three external dependencies (search, LLM, fetch) work with your keys, then researching a real domain. The remaining pipeline nodes and the LangGraph outer graph land in P2.
 
 For the full settings reference, see [configuration.md](configuration.md). For the directory layout and end-to-end data flow, see [architecture.md](architecture.md).
 
@@ -105,7 +105,29 @@ pitch-pilot smoke test - verifying external dependencies
 
 If your console can't encode the emoji markers, pitch-pilot automatically degrades them to `[OK]` / `[FAIL]` — the exit code is unchanged.
 
-## 6. Run the unit tests
+## 6. Research a domain
+
+With your keys in place, run the agentic research node against a real company domain:
+
+```bash
+python -m pitch_pilot.cli research acme.com
+```
+
+It seeds from the company's own site, then lets the LLM choose each next search query (bounded by `RESEARCH_MAX_QUERIES`), extracting source-tagged facts along the way. The output groups the grounded facts by category — overview, news, hiring, tech — with each fact's source URL, and ends with a summary line:
+
+```text
+== OVERVIEW (2) ==
+  - Acme builds developer tools
+      source: https://acme.com
+  ...
+
+Summary: 7 facts, 4 sources, 3 queries run.
+Queries (LLM-chosen): what does acme do | acme funding 2026 | acme careers
+```
+
+Every fact carries an `http(s)` source URL and a verbatim evidence snippet drawn from that source — see [groundedness.md](groundedness.md) for how that is enforced.
+
+## 7. Run the unit tests
 
 The unit tests are fully mocked — **no network access and no API keys required**:
 
@@ -113,7 +135,7 @@ The unit tests are fully mocked — **no network access and no API keys required
 pytest
 ```
 
-## 7. Preview the docs (optional)
+## 8. Preview the docs (optional)
 
 The `dev` extras include MkDocs Material, so you can serve this documentation site locally with live reload:
 
