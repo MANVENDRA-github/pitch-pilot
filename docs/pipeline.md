@@ -7,10 +7,12 @@ assembled with [LangGraph](glossary.md) on top of the typed
 [`PipelineState`](components/graph.md) contract.
 
 !!! note "Status"
-    P0 ships the **state contract** and a documented `build_pipeline()` stub that
-    raises `NotImplementedError`. The graph wiring and node logic land in
-    **[P1](roadmap.md)**. This page is the design spec the implementation follows,
-    so it is intentionally written ahead of the code.
+    The **`research_node`** and its [agentic research sub-loop](#the-agentic-research-sub-loop)
+    are implemented in **[P1](roadmap.md)** (plus a thin `research_node` graph
+    adapter). The deterministic outer-graph wiring (`build_pipeline()`) and the
+    remaining nodes (`qualify`, `draft`, `verify`, `log`) land in
+    **[P2](roadmap.md)**; for those, this page is the design spec the
+    implementation will follow, so it is written ahead of the code.
 
 ## The graph
 
@@ -47,15 +49,20 @@ state with its slice filled in. State accumulates; nothing is discarded.
 
 ## Nodes
 
-### `research_node` — gather grounded facts
+### `research_node` — gather grounded facts ✅ implemented (P1)
 
 - **Reads:** `company`
 - **Writes:** `research: ResearchResult`
 - **What it does:** Runs the [agentic research sub-loop](#the-agentic-research-sub-loop)
-  to produce a set of [`Fact`](data-models.md)s, each carrying a `source_url`.
+  to produce a set of [`Fact`](data-models.md)s, each carrying a `source_url` and
+  a verbatim `evidence` snippet. Non-fatal failures are recorded on
+  `ResearchResult.errors` rather than raised.
 - **Uses:** [`SearchClient`](components/clients.md) (Tavily) and
   [`fetch_page`](components/clients.md); the [`LLMClient`](components/clients.md)
   to plan queries and extract facts.
+- **Entry points:** the pure function `run_research(company, llm, search, settings)`
+  does the work; the `research_node(state)` graph adapter calls it and returns
+  `{"research": ResearchResult}`. See [components/nodes.md](components/nodes.md).
 
 ### `qualify_node` — score against the ICP
 
@@ -112,26 +119,42 @@ auditable.
 ## The agentic research sub-loop
 
 Inside `research_node`, the model runs a bounded [ReAct](glossary.md)-style loop —
-this is the one place pitch-pilot is genuinely *agentic*:
+this is the one place pitch-pilot is genuinely *agentic*, because **the LLM picks
+the next search query** instead of working through a fixed list:
 
 ```text
-  plan ──▶ search ──▶ fetch ──▶ extract facts ──▶ enough?
-   ▲                                                  │ no
-   └──────────────── refine query ◀───────────────────┘
-                          │ yes
-                          ▼
-                   ResearchResult
+  seed-fetch ──▶ extract ──▶ ┌─ plan (LLM: next query or done?) ─┐
+                             │                                   │ done / budget hit
+                             ▼                                   ▼
+                           search ──▶ extract ──▶ reflect    ResearchResult
+                             ▲                        │
+                             └────────────────────────┘
 ```
 
-1. **Plan** — propose the next search query from what's known so far.
-2. **Search** — call the [`SearchClient`](components/clients.md) for results.
-3. **Fetch** — pull candidate pages to clean text with
-   [`fetch_page`](components/clients.md).
-4. **Extract** — turn supported statements into [`Fact`](data-models.md)s, each
-   bound to the `source_url` it came from.
-5. **Decide** — stop when there's enough grounded evidence, or loop again.
+1. **Seed** — `fetch_page(company.domain)`; if it returns text, run the extractor
+   on it (the site URL is the source). These are the first facts.
+2. **Plan** — call the `LLMClient` with the target dimensions
+   (overview / news / hiring / tech), a summary of facts gathered so far and which
+   dimensions are still thin, and the queries already run. It returns
+   `{"done": bool, "reason": str, "next_query": str | null}` — the model decides
+   the next query *or* that coverage is sufficient.
+3. **Stop conditions** — stop when the planner returns `done: true` (or no query),
+   **or** when `len(queries_run) >= RESEARCH_MAX_QUERIES`. The budget is a **hard
+   cap** that always overrides the planner's wish to keep going.
+4. **Search** — run the chosen query through the [`SearchClient`](components/clients.md);
+   for each relevant result, run the extractor on its content (the result URL is
+   the source).
+5. **Reflect** — de-duplicate and accumulate the new facts, record the query, and
+   loop back to **Plan**.
+
+The **extractor** is the groundedness guard (see
+[components/nodes.md](components/nodes.md) and [groundedness.md](groundedness.md)):
+it emits only claims the source text supports, each with a verbatim `evidence`
+snippet, and drops any candidate whose evidence is not actually found in the
+source. A failed fetch or an empty search is recorded on `ResearchResult.errors`
+and the loop simply moves on.
 
 The loop is **bounded by `RESEARCH_MAX_QUERIES`** ([Configuration](configuration.md))
 so cost and latency stay predictable. Open-ended exploration lives inside this
 box; the box itself is wired deterministically — see
-[Decisions → ADR-0003](decisions.md).
+[Decisions → ADR-0003](decisions.md) and [ADR-0006](decisions.md).
