@@ -1,12 +1,17 @@
 """Command-line entry point for pitch-pilot.
 
-P0 exposes one command — ``smoke`` — the acceptance gate that proves all three
-external dependencies (search, LLM, fetch) work with the configured keys::
+Two commands are available::
 
-    python -m pitch_pilot.cli smoke
+    python -m pitch_pilot.cli smoke            # P0 acceptance gate
+    python -m pitch_pilot.cli research <domain>  # run the agentic research node
 
-It runs one Tavily search, one LLM completion, and one page fetch, printing a
-clear ✅ / ❌ for each and exiting non-zero if any check fails.
+``smoke`` proves all three external dependencies (search, LLM, fetch) work with
+the configured keys: it runs one Tavily search, one LLM completion, and one page
+fetch, printing a clear ✅ / ❌ for each and exiting non-zero if any check fails.
+
+``research`` runs the agentic research loop for a single domain and prints the
+grounded facts grouped by category — each with its source URL — followed by a
+summary line (how many facts, sources, and LLM-chosen queries).
 """
 
 from __future__ import annotations
@@ -109,23 +114,97 @@ def run_smoke() -> int:
     return 0 if passed == len(checks) else 1
 
 
+def run_research_cli(domain: str) -> int:
+    """Run the agentic research node for ``domain`` and print grouped facts.
+
+    Loads configuration, builds the configured LLM and search clients, runs
+    `run_research`, then prints the grounded facts grouped by category (each with
+    its ``source_url``) and a final summary line. Returns a process exit code
+    (0 on success, 1 if configuration could not be loaded).
+
+    Args:
+        domain: The company domain to research, e.g. ``"acme.com"``.
+    """
+    _reconfigure_utf8()
+    try:
+        settings = get_settings()
+    except ConfigError as exc:
+        print(f"{FAIL} Config: {exc}")
+        return 1
+
+    from pitch_pilot.clients.llm import get_llm_client
+    from pitch_pilot.clients.search import get_search_client
+    from pitch_pilot.models.lead import Company
+    from pitch_pilot.nodes.research import RESEARCH_DIMENSIONS, run_research
+
+    print(f"Researching {domain} (provider = {settings.llm_provider}) ...\n")
+    result = run_research(
+        Company(domain=domain),
+        get_llm_client(settings),
+        get_search_client(settings),
+        settings,
+    )
+
+    by_category: dict[str, list] = {dim: [] for dim in RESEARCH_DIMENSIONS}
+    uncategorized: list = []
+    for fact in result.facts:
+        by_category.get(fact.category, uncategorized).append(fact)
+
+    def _print_group(label: str, facts: list) -> None:
+        print(f"== {label} ({len(facts)}) ==")
+        for fact in facts:
+            print(f"  - {fact.claim}")
+            print(f"      source: {fact.source_url}")
+        if not facts:
+            print("  (none)")
+        print()
+
+    for dim in RESEARCH_DIMENSIONS:
+        _print_group(dim.upper(), by_category[dim])
+    if uncategorized:
+        _print_group("UNCATEGORIZED", uncategorized)
+
+    if result.errors:
+        print("Notes (non-fatal):")
+        for err in result.errors:
+            print(f"  {FAIL} {err}")
+        print()
+
+    print(
+        f"Summary: {len(result.facts)} facts, "
+        f"{result.source_count} sources, "
+        f"{len(result.queries_run)} queries run."
+    )
+    if result.queries_run:
+        print("Queries (LLM-chosen): " + " | ".join(result.queries_run))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Returns a process exit code."""
     _reconfigure_utf8()
 
     parser = argparse.ArgumentParser(
         prog="pitch-pilot",
-        description="pitch-pilot — autonomous SDR agent (P0 scaffold).",
+        description="pitch-pilot — autonomous SDR agent.",
     )
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser(
         "smoke", help="Run the P0 acceptance gate: verify search, LLM and fetch."
+    )
+    research_parser = subparsers.add_parser(
+        "research", help="Run the agentic research node for a company domain."
+    )
+    research_parser.add_argument(
+        "domain", help="Company domain to research, e.g. acme.com"
     )
 
     args = parser.parse_args(argv)
 
     if args.command == "smoke":
         return run_smoke()
+    if args.command == "research":
+        return run_research_cli(args.domain)
 
     parser.print_help()
     return 0
