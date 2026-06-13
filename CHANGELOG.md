@@ -7,9 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet — P4 (evaluation: labeled datasets, the metrics harness, a published
-baseline, and the eval-time independent live re-verification deferred in ADR-0010)
-is next._
+_Nothing yet — P5 (storage and review app: production `Store` backends and a
+human-review UI over the queue) is next._
+
+## [0.5.0] — 2026-06-13
+
+**P4 — Eval harness.** The offline evaluation that produces the headline numbers,
+built for free-tier reality (cache, checkpoint, back off, resume).
+
+### Added
+
+- `examples/eval_icp.json` and `examples/eval_companies.json` — a hypothetical
+  fintech ICP and a labeled company set spanning `good_fit` / `bad_fit` (incl. an
+  incumbent-bank negative-signal case) / `sparse`. Labels are explicitly
+  **human-proposed** with a `[VERIFY]` flag and a defensible labeling rubric in
+  `docs/evals.md`.
+- `evals/run_eval.py` — the runner with three commands: `run` (research[cached] →
+  qualify → draft → verify, checkpointed and resumable), `recheck` (independent live
+  re-verification of used sources, reported by tier), and `report` (recompute, no
+  network). Research is cached per domain; rate-limits are retried with exponential
+  backoff via `RetryingLLM`; a persistently rate-limited company is recorded as an
+  error and retried next run rather than aborting the run.
+- `evals/metrics.py` — pure metric functions: qualification accuracy / precision /
+  recall / F1, draft-gate pass-rate, mean groundedness & faithfulness, a
+  failure-mode breakdown (proves the gate catches, not just passes), live
+  re-verifiability by tier, and facts/company by category (degradation).
+- `docs/evals.md` rewritten (methodology, rubric, metrics, numbers table) and a new
+  `docs/components/evals.md` documenting the harness internals.
+- CLI: `python -m evals.run_eval [--limit N] [--resume] [recheck|report]`.
+
+### Changed
+
+- `pytest` now also has the repo root on `pythonpath` so the `evals` package is
+  importable in tests; `evals/cache/` and `evals/results/` are git-ignored runtime
+  artifacts (dated reports under `evals/reports/` are kept).
 
 ## [0.4.0] — 2026-06-13
 
