@@ -1,0 +1,17 @@
+{
+  "industries": ["fintech", "payments", "lending", "neobank", "crypto exchange"],
+  "min_employees": 50,
+  "max_employees": 1000,
+  "regions": ["US", "EU", "UK", "India"],
+  "positive_signals": [
+    "processes online payments or transactions at scale",
+    "recently raised growth funding",
+    "hiring risk, fraud, or security roles",
+    "regulatory or compliance exposure"
+  ],
+  "negative_signals": [
+    "not fintech or no money movement",
+    "pre-revenue or fewer than 20 employees",
+    "large incumbent bank that builds fraud in-house"
+  ]
+}
