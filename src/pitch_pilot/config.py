@@ -38,8 +38,16 @@ class Settings(BaseSettings):
         gemini_model: Gemini model id (default ``gemini-2.5-flash-lite``).
         groq_model: Groq model id (default ``llama-3.1-8b-instant``).
         research_max_queries: Max search queries per research run (``>= 1``, default 4).
+        qualify_threshold: Minimum fit score, in ``[0, 1]``, for a company to
+            qualify against the ICP (default 0.5). A matched negative signal vetoes
+            qualification regardless of this score.
         groundedness_threshold: Minimum groundedness score, in ``[0, 1]``, for a
-            draft to pass verification (default 0.9).
+            draft to pass verification (default 0.9). With first-party-only
+            enforcement (P3) a passing draft scores 1.0, so this is effectively a
+            floor; it is kept for transparency and future tuning.
+        faithfulness_strict: When ``True`` (default), the verification gate treats
+            an ``"overreach"`` faithfulness verdict as a failure; when ``False``,
+            only ``"unsupported"`` fails. ``"unsupported"`` always fails.
     """
 
     model_config = SettingsConfigDict(
@@ -67,8 +75,15 @@ class Settings(BaseSettings):
     research_max_queries: int = Field(
         default=4, ge=1, description="Max number of search queries per research run."
     )
+    qualify_threshold: float = Field(
+        default=0.5, ge=0.0, le=1.0, description="Minimum fit score for a company to qualify against the ICP."
+    )
     groundedness_threshold: float = Field(
         default=0.9, ge=0.0, le=1.0, description="Minimum groundedness score for a draft to pass verification."
+    )
+    faithfulness_strict: bool = Field(
+        default=True,
+        description="When true, an 'overreach' faithfulness verdict fails the gate; when false, only 'unsupported' fails.",
     )
 
     @field_validator("llm_provider")
