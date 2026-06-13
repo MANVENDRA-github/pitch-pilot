@@ -229,3 +229,40 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   hooks), a stricter gate that will route more drafts to human review, and reliance
   on the judge's quality, which P4's eval harness is meant to measure and keep
   honest.
+
+## ADR-0011 — The eval set includes negatives + sparse; the harness caches, checkpoints, and backs off
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** P4 produces the numbers the project is judged on, so the eval has to
+  be both *honest* (a set of only easy positives would inflate every metric) and
+  *runnable* on free tiers (a full pipeline run is ~30 LLM calls per company; daily
+  quotas and per-minute rate limits make a naive loop abort halfway and lose all
+  progress). It also has to be reproducible — a headline number is meaningless
+  without the model that produced it.
+- **Decision:**
+    1. **The dataset includes negatives and sparse companies, not just good fits.**
+       `examples/eval_companies.json` spans `good_fit` (should qualify), `bad_fit`
+       (should not — including an incumbent-bank negative-signal case), and `sparse`
+       (thin sites, including good-fit edge cases). Labels are explicitly marked
+       **human-proposed** and several `[VERIFY]`; a documented rubric in
+       `docs/evals.md` makes the ground truth defensible. Metrics report not just
+       pass-rates but a **failure-mode breakdown**, so the eval proves the gate
+       *catches* bad claims, not just that it passes good ones.
+    2. **The harness caches, checkpoints, backs off, and resumes.** Research is
+       cached per domain (never recomputed); each company's result is checkpointed
+       as it finishes and skipped on resume; rate-limit errors are backed off and
+       retried, and a persistently rate-limited company is recorded as an error and
+       retried next run rather than aborting the whole run. Live re-verification is a
+       separate, network-bounded `recheck` command, not part of the per-run path
+       (consistent with [ADR-0010](#adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time)).
+    3. **Every reported number carries the model that produced it.** Result files
+       and reports are keyed by the model slug, and the report/`docs/evals.md` record
+       the model id, so numbers are reproducible and comparable across models.
+- **Consequences:** The eval is honest about what it measures and runnable in a
+  free-tier reality across multiple days. The cost is a more complex harness (cache
+  + checkpoint + backoff) and a standing obligation to keep labels human-verified —
+  the proposed labels are a scaffold, and any metric is only as trustworthy as that
+  verification. The 8B model malforms the structured JSON under load, so headline
+  numbers are produced on a capable model (Groq 70B or Gemini), recorded alongside
+  the numbers.
