@@ -14,6 +14,7 @@ from pitch_pilot.clients.fetch import _html_to_text, fetch_page
 from pitch_pilot.clients.llm import (
     GeminiClient,
     GroqClient,
+    LLMError,
     LLMJSONError,
     _loads_json_lenient,
     get_llm_client,
@@ -82,6 +83,40 @@ class TestLLMFactory:
     def test_groq_without_key_raises(self):
         with pytest.raises(ValueError):
             get_llm_client(_settings(llm_provider="groq", groq_api_key=None))
+
+
+class TestProviderErrorsNormalizeToLLMError:
+    """A vendor SDK error (e.g. Groq's json_validate_failed) must surface as LLMError
+    so pipeline nodes' ``except LLMError`` can degrade gracefully instead of crashing."""
+
+    def test_groq_complete_json_wraps_sdk_error(self):
+        class _Completions:
+            def create(self, **kwargs):
+                raise RuntimeError("400 json_validate_failed")
+
+        class _Chat:
+            completions = _Completions()
+
+        class _SDK:
+            chat = _Chat()
+
+        client = GroqClient(api_key="k", model="m")
+        client._client = _SDK()  # bypass lazy SDK construction
+        with pytest.raises(LLMError):
+            client.complete_json("system", "user")
+
+    def test_gemini_complete_wraps_sdk_error(self):
+        class _Models:
+            def generate_content(self, **kwargs):
+                raise RuntimeError("429 RESOURCE_EXHAUSTED")
+
+        class _SDK:
+            models = _Models()
+
+        client = GeminiClient(api_key="g", model="m")
+        client._client = _SDK()
+        with pytest.raises(LLMError):
+            client.complete("system", "user")
 
 
 class TestHtmlToText:
