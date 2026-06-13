@@ -59,3 +59,6 @@ coverage.xml
 *.swp
 .DS_Store
 Thumbs.db
+
+# Validation harness raw output (regenerable; report lives in docs/validation/)
+scripts/p1_validation_data.json
