@@ -1,6 +1,6 @@
 # Data Models
 
-> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/models/`
+> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/models/`
 
 pitch-pilot's data contracts are a set of [pydantic](https://docs.pydantic.dev/) models — one model per artifact that flows through the pipeline. They are the typed boundary between nodes: each node reads some models off the shared state and writes others back. This page documents every model and field exactly as defined in `src/pitch_pilot/models/`.
 
@@ -9,7 +9,7 @@ All models are re-exported from the package root, so callers use a single import
 ```python
 from pitch_pilot.models import (
     Fact, SearchResult, ICP, Company, Lead,
-    ResearchResult, QualificationResult, Draft, VerificationResult,
+    ResearchResult, QualificationResult, Draft, VerificationResult, ClaimVerdict,
 )
 ```
 
@@ -21,6 +21,8 @@ These artifacts are produced and consumed as a run moves through the [pipeline](
 
 Facts produced by the [research node](components/nodes.md) also carry an `evidence` snippet — a short verbatim excerpt from the source text that supports the claim. The extractor verifies the snippet actually appears in the source before building the `Fact`, so `evidence` is the anchor for the substring grounding check (see [groundedness.md](groundedness.md)).
 
+Each fact is also tagged with a **`source_tier`** that records how trustworthy its source is. This is set by the research node from the source URL and is consumed downstream: drafting prefers the higher tiers and refuses `third_party_snippet` facts for hard numerics, and verification flags claims backed only by that tier as *volatile*. See [Groundedness → source tiers](groundedness.md) and [Decisions → ADR-0008](decisions.md).
+
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `claim` | `str` | required | A short factual statement, e.g. `"Acme raised a $20M Series B"`. |
@@ -29,6 +31,7 @@ Facts produced by the [research node](components/nodes.md) also carry an `eviden
 | `category` | `str \| None` | `None` | Coarse bucket for the fact, e.g. `"overview"`, `"news"`, `"hiring"`, `"tech"`. |
 | `confidence` | `float` | `0.5` | Model/heuristic confidence in the claim. Constrained to `[0.0, 1.0]`. |
 | `evidence` | `str` | `""` (empty) | Short verbatim snippet (`<= 200` chars) from the source text supporting the `claim`. Populated for facts produced by the research extractor, which drops any candidate whose evidence is not found in the source. |
+| `source_tier` | `Literal` | `"third_party_snippet"` | Trust tier of the source. One of `"own_site"` (the company's own domain, incl. sub-pages/subdomains), `"authoritative"` (a recognized primary source), or `"third_party_snippet"` (search-snippet sources; the conservative default). |
 
 ## SearchResult
 
@@ -64,11 +67,15 @@ Facts produced by the [research node](components/nodes.md) also carry an `eviden
 
 ## Lead
 
-`Lead` wraps the `Company` a run is about. It is intentionally thin: it carries only the `Company`. The artifacts produced for it (research, qualification, draft, verification) live on the pipeline state rather than being mutated onto the `Lead` in place. The store persists the `Lead` together with those artifacts at the end of a run (see [components/storage.md](components/storage.md)).
+`Lead` is the `Company` plus the artifacts a run produced for it — it is what the [`Store`](components/storage.md) persists at the end of a run. The artifact fields are optional because a lead can be logged at different stages: a disqualified company carries only its `qualification`, while a fully processed one carries the `draft` and `verification` too. During the run these same artifacts live on the [`PipelineState`](components/graph.md); the [`log_node`](pipeline.md) copies the final ones onto the `Lead` so the persisted record is self-contained.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `company` | `Company` | required | The company this lead is about. |
+| `qualification` | `QualificationResult \| None` | `None` | The ICP verdict, if the qualify node ran. |
+| `draft` | `Draft \| None` | `None` | The outreach draft, if the draft node ran. |
+| `verification` | `VerificationResult \| None` | `None` | The groundedness audit, if the verify node ran. |
+| `status` | `str` | `"pending"` | Terminal outcome — `"ready"`, `"review"`, or `"disqualified"`. |
 
 ## ResearchResult
 
@@ -101,22 +108,38 @@ Facts produced by the [research node](components/nodes.md) also carry an `eviden
 
 ## Draft
 
-`Draft` is the outreach email produced for a lead. It is written only from grounded `Fact` objects and is then checked by the verification step before a human reviews it. pitch-pilot never sends a `Draft` automatically.
+`Draft` is the outreach email produced for a lead. The [`draft_node`](pipeline.md) writes it only from grounded `Fact` objects, and every hook it claims to use is validated back against the facts — so `hooks_used` is always a subset of the real research facts. Hard-numeric claims (funding, headcount, …) from `third_party_snippet` facts are withheld from drafting entirely. It is then checked by the verification step before a human reviews it. pitch-pilot never sends a `Draft` automatically.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `subject` | `str` | required | The email subject line. |
 | `body` | `str` | required | The email body. |
-| `hooks_used` | `list[str]` | `[]` (empty list) | The angles/hooks the draft leaned on, e.g. `["recent funding", "open SDR roles"]` — useful for review and for tracing each hook back to a source. |
+| `hooks_used` | `list[str]` | `[]` (empty list) | The exact `Fact` claims the draft referenced — each traces back to a grounded source. Validated against the research facts, so a hook the model invents is discarded. |
 
 ## VerificationResult
 
-`VerificationResult` is the groundedness audit of a `Draft` and the enforcement point for the hero guarantee. A draft passes only if its `groundedness_score` clears the configured `GROUNDEDNESS_THRESHOLD` (default `0.9`; see [configuration.md](configuration.md)). The score is computed as `grounded_claims / total_claims`; details of the gate live in [groundedness.md](groundedness.md).
+`VerificationResult` is the groundedness audit of a `Draft` and the enforcement point for the hero guarantee. The [`verify_node`](pipeline.md) checks each claim (the draft's `hooks_used`) and **passes the draft only if every claim is *verified*** — backed by a first-party (`own_site`/`authoritative`) `Fact`, substring-anchored, and judged `faithful` by the LLM (or `overreach` when `FAITHFULNESS_STRICT` is off). The full methodology, and how each score is defined, lives in [groundedness.md](groundedness.md).
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `groundedness_score` | `float` | required | Fraction of claims that are grounded, constrained to `[0.0, 1.0]`. |
-| `total_claims` | `int` | required | Total number of factual claims detected in the draft. |
-| `grounded_claims` | `int` | required | Number of claims successfully traced to a source. |
-| `flagged_claims` | `list[str]` | `[]` (empty list) | The specific claims that could **not** be grounded. |
-| `passed` | `bool` | required | Whether the draft cleared the groundedness threshold. |
+| `groundedness_score` | `float` | required | Fraction of claims fully verified (`grounded_claims / total_claims`), in `[0.0, 1.0]`. Reported even when the draft passes. |
+| `faithfulness_score` | `float` | `0.0` | Fraction of claims the judge rated `faithful` (`faithful_claims / total_claims`), in `[0.0, 1.0]`. |
+| `total_claims` | `int` | required | Total number of claims checked (the draft's hooks). |
+| `grounded_claims` | `int` | required | Number of claims that are fully verified (the numerator of `groundedness_score`). |
+| `tier_breakdown` | `dict[str, int]` | `{}` | Count of claims per backing source tier, e.g. `{"own_site": 2, "unbacked": 1}`. |
+| `claim_verdicts` | `list[ClaimVerdict]` | `[]` (empty list) | The per-claim audit trail (see `ClaimVerdict` below). |
+| `flagged_claims` | `list[str]` | `[]` (empty list) | Failure lines for claims that did not verify, each prefixed with the reason: `unbacked:` / `volatile-source:` / `not-substring:` / `overreach:` / `unsupported:`. |
+| `passed` | `bool` | required | True only if there is at least one claim and **every** claim is verified. |
+
+## ClaimVerdict
+
+`ClaimVerdict` is the per-claim audit trail produced by the verify node — one per claim the draft stands on, pass or fail — so a reviewer can see exactly why each claim was accepted or rejected.
+
+| Field | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `claim` | `str` | required | The draft claim under audit (a `Draft` hook). |
+| `fact_used` | `str \| None` | `None` | The claim text of the backing `Fact` chosen to support it; `None` if unbacked. |
+| `source_url` | `str \| None` | `None` | The backing fact's source URL; `None` if unbacked. |
+| `tier` | `str \| None` | `None` | The backing fact's source tier; `None` if unbacked. |
+| `substring_ok` | `bool` | `False` | Whether the backing fact carries a verbatim `evidence` snippet (the extraction-time substring guard held). |
+| `faithfulness` | `Literal \| None` | `None` | The judge verdict (`faithful`/`overreach`/`unsupported`), or `None` when the claim failed an earlier check and was not judged. |

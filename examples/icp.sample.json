@@ -1,0 +1,17 @@
+{
+  "industries": ["fintech", "devtools", "developer infrastructure", "SaaS"],
+  "min_employees": 50,
+  "max_employees": 2000,
+  "regions": ["US", "EU", "UK"],
+  "positive_signals": [
+    "recently raised funding",
+    "hiring engineers or sales roles",
+    "ships a developer-facing or API product",
+    "growing headcount"
+  ],
+  "negative_signals": [
+    "non-profit or government",
+    "direct competitor to our product",
+    "early-stage pre-seed with no revenue"
+  ]
+}

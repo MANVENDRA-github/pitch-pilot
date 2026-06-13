@@ -33,6 +33,11 @@ class TestFactGroundedness:
         assert fact.confidence == 0.5  # default
         assert fact.source_title is None
         assert fact.category is None
+        assert fact.source_tier == "third_party_snippet"  # conservative default
+
+    def test_source_tier_rejects_unknown_value(self):
+        with pytest.raises(ValidationError):
+            Fact(claim="x", source_url="https://a.com", source_tier="totally_made_up")
 
     def test_empty_source_url_rejected(self):
         with pytest.raises(ValidationError):
@@ -75,6 +80,25 @@ class TestModelsConstruct:
         lead = Lead(company=Company(domain="acme.com", name="Acme"))
         assert lead.company.domain == "acme.com"
         assert lead.company.name == "Acme"
+        # Artifact fields default to None / pending until the log node fills them.
+        assert lead.qualification is None
+        assert lead.draft is None
+        assert lead.verification is None
+        assert lead.status == "pending"
+
+    def test_lead_carries_artifacts(self):
+        lead = Lead(
+            company=Company(domain="acme.com"),
+            qualification=QualificationResult(qualified=True, score=0.8, reason="fit"),
+            draft=Draft(subject="s", body="b", hooks_used=["h"]),
+            verification=VerificationResult(
+                groundedness_score=1.0, total_claims=1, grounded_claims=1, passed=True
+            ),
+            status="ready",
+        )
+        assert lead.status == "ready"
+        assert lead.draft.subject == "s"
+        assert lead.verification.passed is True
 
     def test_company_name_optional(self):
         assert Company(domain="acme.com").name is None

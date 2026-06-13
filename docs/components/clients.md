@@ -1,6 +1,6 @@
 # Clients
 
-> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/clients/`
+> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/clients/`
 
 The `clients` package is pitch-pilot's swappable external-service layer. Every call that leaves the process — an LLM completion, a web search, an HTTP page fetch — goes through a small interface defined here. The rest of the pipeline depends on those interfaces, never on a vendor SDK, so providers can be swapped by configuration and the network can be mocked at a single seam in tests.
 
@@ -39,6 +39,8 @@ Each client also caches its underlying SDK client after first construction (an `
 | `complete_json(system, user)` | `dict` | A parsed JSON **object**. Raises `LLMJSONError` on bad JSON. |
 
 Both take a `system` prompt (role/behavior) and a `user` prompt (the request). The error hierarchy is `LLMError(RuntimeError)` with `LLMJSONError(LLMError)` for JSON-parse failures specifically.
+
+**Provider errors are normalized.** Both methods wrap the vendor SDK call and re-raise any provider exception (a network error, a rate-limit, or Groq's server-side `json_validate_failed`) as `LLMError`. This is the contract pipeline nodes rely on: each node catches `LLMError` and degrades gracefully (e.g. the qualify node falls back to an all-unknown assessment) rather than letting a vendor exception crash the whole run.
 
 ### Lenient JSON parsing
 

@@ -1,11 +1,10 @@
-"""Unit tests for the graph state, the pipeline stub, and storage. No network."""
+"""Unit tests for the graph state, the compiled pipeline, and storage. No network."""
 
 from __future__ import annotations
 
 import json
 
-import pytest
-
+from pitch_pilot.config import Settings
 from pitch_pilot.graph.pipeline import build_pipeline
 from pitch_pilot.graph.state import PipelineState
 from pitch_pilot.models import ICP, Company, Lead
@@ -40,10 +39,13 @@ class TestPipelineState:
         assert b.errors == []  # mutable default is not shared across instances
 
 
-class TestPipelineStub:
-    def test_build_pipeline_is_not_implemented_yet(self):
-        with pytest.raises(NotImplementedError):
-            build_pipeline()
+class TestBuildPipeline:
+    def test_build_pipeline_compiles(self):
+        # Builds with lazily-constructed real clients (no network at construction);
+        # compiling does not invoke any node, so no keys are exercised.
+        settings = Settings(_env_file=None, gemini_api_key="g", tavily_api_key="t")
+        app = build_pipeline(settings=settings)
+        assert hasattr(app, "invoke")
 
 
 class TestJsonStore:

@@ -1,6 +1,6 @@
 # Configuration
 
-> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/config.py`, `.env.example`
+> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/config.py`, `.env.example`
 
 All runtime configuration lives in a single, validated `Settings` object built on Pydantic Settings. pitch-pilot reads its configuration once at startup and fails loudly if anything required is missing or invalid — it never starts a run half-configured. For a step-by-step setup walkthrough, see [Getting Started](getting-started.md).
 
@@ -49,7 +49,9 @@ One row per field defined in `config.py`:
 | `GEMINI_MODEL` | No | `gemini-2.5-flash-lite` | Gemini model id. |
 | `GROQ_MODEL` | No | `llama-3.1-8b-instant` | Groq model id. |
 | `RESEARCH_MAX_QUERIES` | No | `4` | Max search queries per research run. |
-| `GROUNDEDNESS_THRESHOLD` | No | `0.9` | Minimum groundedness score for a draft to pass verification. |
+| `QUALIFY_THRESHOLD` | No | `0.5` | Minimum fit score for a company to qualify against the ICP. A matched negative signal vetoes qualification regardless. |
+| `GROUNDEDNESS_THRESHOLD` | No | `0.9` | Minimum groundedness score for a draft to pass verification. With first-party-only enforcement a passing draft scores 1.0, so this is effectively a floor; kept for transparency. |
+| `FAITHFULNESS_STRICT` | No | `true` | When `true`, an `overreach` faithfulness verdict fails the verify gate; when `false`, only `unsupported` fails. `unsupported` always fails. |
 
 The two LLM providers and their keys/models are consumed when building model clients — see [components/clients.md](components/clients.md).
 
@@ -61,7 +63,9 @@ These constraints are enforced when `Settings` loads; violating any of them prod
 | --- | --- |
 | Must be `"gemini"` or `"groq"` (trimmed and lower-cased before checking). | `LLM_PROVIDER` |
 | Must be an integer `>= 1`. | `RESEARCH_MAX_QUERIES` |
+| Must be a float in the closed range `[0, 1]`. | `QUALIFY_THRESHOLD` |
 | Must be a float in the closed range `[0, 1]`. | `GROUNDEDNESS_THRESHOLD` |
+| Boolean (`true`/`false`, case-insensitive; also `1`/`0`). | `FAITHFULNESS_STRICT` |
 | Required only when `LLM_PROVIDER=groq`; otherwise optional and defaults to `None`. | `GROQ_API_KEY` |
 
 The `LLM_PROVIDER` validator normalizes its input, so `GEMINI`, ` gemini `, and `Gemini` all resolve to the canonical `"gemini"`.
@@ -85,9 +89,11 @@ LLM_PROVIDER=gemini
 GEMINI_MODEL=gemini-2.5-flash-lite
 GROQ_MODEL=llama-3.1-8b-instant
 
-# --- Research / grounding tunables ---
+# --- Research / qualification / grounding tunables ---
 RESEARCH_MAX_QUERIES=4
+QUALIFY_THRESHOLD=0.5
 GROUNDEDNESS_THRESHOLD=0.9
+FAITHFULNESS_STRICT=true
 ```
 
 On Windows/PowerShell, create the file with `Copy-Item .env.example .env`. Avoid `Set-Content -Encoding utf8`, which writes a BOM that corrupts the first key.

@@ -17,7 +17,7 @@ from pitch_pilot.models.lead import Company, Lead
 from pitch_pilot.models.qualification import QualificationResult
 from pitch_pilot.models.research import ResearchResult
 from pitch_pilot.models.search import SearchResult
-from pitch_pilot.models.verification import VerificationResult
+from pitch_pilot.models.verification import ClaimVerdict, VerificationResult
 
 __all__ = [
     "Fact",
@@ -29,4 +29,5 @@ __all__ = [
     "QualificationResult",
     "Draft",
     "VerificationResult",
+    "ClaimVerdict",
 ]

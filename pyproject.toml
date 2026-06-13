@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pitch-pilot"
-version = "0.2.0"
+version = "0.5.0"
 description = "An autonomous SDR agent that researches a company, qualifies it against an ICP, drafts grounded outreach, and verifies every claim against a source."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -54,5 +54,5 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "-ra"

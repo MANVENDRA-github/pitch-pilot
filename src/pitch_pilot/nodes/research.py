@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urlparse
 
 from pydantic import ValidationError
 
@@ -37,11 +38,18 @@ from pitch_pilot.clients.llm import LLMClient, LLMError, get_llm_client
 from pitch_pilot.clients.search import SearchClient, get_search_client
 from pitch_pilot.config import Settings, get_settings
 from pitch_pilot.graph.state import PipelineState
-from pitch_pilot.models.fact import Fact
+from pitch_pilot.models.fact import Fact, SourceTier
 from pitch_pilot.models.lead import Company
 from pitch_pilot.models.research import ResearchResult
 
 logger = logging.getLogger(__name__)
+
+# Hosts treated as `authoritative` primary sources when tiering a fact's source.
+# Deliberately conservative — official filings/registries only. The P1 validation
+# showed commercial aggregators (Crunchbase, Tracxn, Wellfound, …) are routinely
+# bot-blocked or stale, so they stay in the default `third_party_snippet` tier.
+# Extending this set is a deliberate, reviewable act (see ADR-0008).
+_AUTHORITATIVE_HOSTS: frozenset[str] = frozenset({"sec.gov"})
 
 # The dimensions an SDR cares about. These are both the planner's coverage
 # targets and the only categories the extractor is allowed to assign.
@@ -115,6 +123,49 @@ def _seed_url(domain: str) -> str:
     return f"https://{candidate}"
 
 
+def _host(url: str) -> str:
+    """Return the lower-cased host of a URL or bare domain, without ``www.`` or port."""
+    candidate = (url or "").strip()
+    if not candidate.lower().startswith(("http://", "https://")):
+        candidate = f"https://{candidate}"
+    host = (urlparse(candidate).hostname or "").lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def _is_same_or_subdomain(host: str, domain: str) -> bool:
+    """True if ``host`` is ``domain`` itself or a subdomain of it (``blog.x`` of ``x``)."""
+    return bool(host) and bool(domain) and (host == domain or host.endswith(f".{domain}"))
+
+
+def classify_source_tier(url: str, company_domain: str | None) -> SourceTier:
+    """Classify how trustworthy a fact's source is, from its URL.
+
+    The tiering is purely structural (host-based), so it is deterministic and
+    cheap — no model call. See `SourceTier` for what each tier means and ADR-0008
+    for the rationale.
+
+    Args:
+        url: The fact's ``source_url``.
+        company_domain: The company's own domain (``"acme.com"`` or a URL). Pages
+            on this domain — including sub-pages and subdomains found via search —
+            are the company speaking about itself and tier as ``"own_site"``.
+
+    Returns:
+        ``"own_site"`` for the company's own domain, ``"authoritative"`` for a
+        recognized primary source (`_AUTHORITATIVE_HOSTS`), otherwise
+        ``"third_party_snippet"`` (the default).
+    """
+    host = _host(url)
+    domain = _host(company_domain) if company_domain else ""
+    if _is_same_or_subdomain(host, domain):
+        return "own_site"
+    if host in _AUTHORITATIVE_HOSTS or any(
+        host.endswith(f".{auth}") for auth in _AUTHORITATIVE_HOSTS
+    ):
+        return "authoritative"
+    return "third_party_snippet"
+
+
 def _coerce_confidence(value: object) -> float:
     """Coerce a model-supplied confidence to a float clamped to ``[0, 1]``.
 
@@ -147,6 +198,7 @@ def extract_facts(
     source_url: str,
     source_title: str | None,
     llm: LLMClient,
+    company_domain: str | None = None,
 ) -> list[Fact]:
     """Extract grounded `Fact`s from a single source's text.
 
@@ -159,11 +211,16 @@ def extract_facts(
     dropped and logged. Extraction is capped at `MAX_FACTS_PER_SOURCE` facts per
     source.
 
+    Each surviving fact is tagged with a `SourceTier` via `classify_source_tier`
+    (``company_domain`` decides what counts as the company's own site).
+
     Args:
         text: The clean source text (a fetched page or a search-result snippet).
         source_url: The URL the text came from; becomes each `Fact.source_url`.
         source_title: Human-readable title of the source, if known.
         llm: The LLM client used to perform extraction.
+        company_domain: The company's own domain, used to tier the source. When
+            omitted, no source can be recognized as ``"own_site"``.
 
     Returns:
         A list of grounded `Fact`s (possibly empty). Never raises for a bad page
@@ -186,6 +243,7 @@ def extract_facts(
         return []
 
     normalized_source = _normalize(text)
+    source_tier = classify_source_tier(source_url, company_domain)
     facts: list[Fact] = []
     for item in _facts_payload(payload):
         if not isinstance(item, dict):
@@ -215,6 +273,7 @@ def extract_facts(
                 # A prefix of a verified substring is still a substring, so
                 # truncating here keeps the snippet grounded.
                 evidence=evidence[:MAX_EVIDENCE_CHARS],
+                source_tier=source_tier,
             )
         except ValidationError as exc:
             logger.info("skipped invalid fact from %s: %s", source_url, exc)
@@ -348,7 +407,7 @@ def run_research(
         seed_text = ""
         result.errors.append(f"seed fetch raised for {seed_url}: {exc}")
     if seed_text:
-        accumulate(extract_facts(seed_text, seed_url, company.name, llm))
+        accumulate(extract_facts(seed_text, seed_url, company.name, llm, company.domain))
     else:
         result.errors.append(f"seed page returned no usable text: {seed_url}")
 
@@ -383,7 +442,7 @@ def run_research(
             if not hit.content or not hit.url:
                 continue
             try:
-                hit_facts = extract_facts(hit.content, hit.url, hit.title, llm)
+                hit_facts = extract_facts(hit.content, hit.url, hit.title, llm, company.domain)
             except Exception as exc:  # noqa: BLE001 — extraction must not crash the run
                 result.errors.append(f"extraction failed for {hit.url}: {exc}")
                 continue
@@ -392,21 +451,32 @@ def run_research(
     return result
 
 
-def research_node(state: PipelineState) -> dict:
+def research_node(
+    state: PipelineState,
+    *,
+    llm: LLMClient | None = None,
+    search: SearchClient | None = None,
+    settings: Settings | None = None,
+) -> dict:
     """Graph adapter: run research for ``state.company`` and return the update.
 
-    A thin wrapper that builds the configured clients and calls `run_research`,
-    returning the partial state update the LangGraph pipeline merges in. The full
-    graph is wired in a later phase; this adapter is the seam it plugs into.
+    A thin wrapper that calls `run_research` and returns the partial state update
+    the LangGraph pipeline merges in. Dependencies default to the configured
+    clients (via `get_settings` / `get_llm_client` / `get_search_client`) but can
+    be injected — `build_pipeline` passes them so the whole graph can run on
+    mocked clients with no network.
 
     Args:
         state: The pipeline state; only ``state.company`` is read.
+        llm: LLM client; built from settings when omitted.
+        search: Search client; built from settings when omitted.
+        settings: Settings; loaded via `get_settings` when omitted.
 
     Returns:
         A dict ``{"research": ResearchResult}`` to merge into the pipeline state.
     """
-    settings = get_settings()
-    llm = get_llm_client(settings)
-    search = get_search_client(settings)
+    settings = settings or get_settings()
+    llm = llm or get_llm_client(settings)
+    search = search or get_search_client(settings)
     research = run_research(state.company, llm, search, settings)
     return {"research": research}
