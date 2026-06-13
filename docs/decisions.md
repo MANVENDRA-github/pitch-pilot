@@ -1,6 +1,6 @@
 # Decisions (ADR log)
 
-> **Last updated:** 2026-06-05 · **Source files:** project-wide
+> **Last updated:** 2026-06-13 · **Source files:** project-wide
 
 Architecture Decision Records — one entry per significant decision, with the
 context that motivated it and the consequences we accept. Newest decisions are
@@ -132,3 +132,100 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   dropped. We accept lower recall for higher precision, consistent with
   [ADR-0004](#adr-0004-no-auto-send-no-linkedin-scraping)'s "trustworthy beats
   voluminous."
+
+## ADR-0008 — Facts are tiered by source trust; the volatile-source policy is deferred to P3
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** The P1 live validation (see `docs/validation/p1-research-audit.md`)
+  found that groundedness has a second axis beyond "has a source": *how durable
+  that source is*. Facts from the company's own site re-verified at 100% on a live
+  re-fetch, while facts grounded only against a search-result snippet (commercial
+  aggregators like Wellfound/Tracxn/Crunchbase, blogs, news indexes) were routinely
+  bot-blocked or stale. A funding figure or headcount sourced from such a snippet is
+  exactly the kind of claim that erodes trust when a reviewer clicks through and
+  finds nothing — or worse, sends it.
+- **Decision:** Add a `source_tier` to [`Fact`](data-models.md) —
+  `own_site` / `authoritative` / `third_party_snippet` (the default) — assigned
+  **deterministically from the URL** by the research node (host on the company
+  domain → `own_site`; a small allowlist of primary sources → `authoritative`;
+  everything else → `third_party_snippet`). Drafting refuses `third_party_snippet`
+  facts for hard numerics, and verification flags claims backed only by that tier as
+  *volatile*. Crucially, **what to *do* about volatile sources at the gate — a live
+  re-fetch, an LLM-judge, a confidence penalty — is explicitly deferred to P3.** P2
+  only *labels* the risk; it does not yet act on it beyond flagging.
+- **Consequences:** The most dangerous claims (specific numbers from flaky sources)
+  can no longer anchor a draft, and reviewers see a `volatile:` flag on the rest.
+  The tiering is cheap, deterministic, and testable. The cost is that the
+  `authoritative` allowlist is deliberately tiny (only official filings), so many
+  genuinely-reliable sources sit in `third_party_snippet` for now; widening that
+  allowlist, and the live-recheck policy, are P3 work. This keeps P2 honest about
+  what it does and does not yet guarantee.
+
+## ADR-0009 — Qualify is hybrid (LLM match + deterministic score/veto); verify is a basic gate first
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** Two P2 nodes make judgements that must be both *fair* (the LLM is
+  good at fuzzy semantic matching of messy facts to ICP signals) and *auditable*
+  (a sales team must be able to reproduce and trust a qualify/verify verdict). Doing
+  either end-to-end with the LLM makes the verdict opaque and non-reproducible;
+  doing it purely with rules can't read free-text facts.
+- **Decision:** Split responsibilities. **Qualify** asks the LLM only to *assess*
+  each ICP attribute/signal against the facts (`match`/`no_match`/`unknown`, with a
+  citing fact), then **deterministic Python** computes a weighted, renormalized fit
+  score, applies a **hard veto** on any matched negative signal, and makes the
+  call against `QUALIFY_THRESHOLD`. Unknowns are never guessed — unknown structural
+  attributes are dropped from the score rather than penalized. **Verify** ships as a
+  **basic, deterministic gate** (claim → backing `Fact` with source + evidence;
+  flag unbacked and volatile; pass only if score clears `GROUNDEDNESS_THRESHOLD`
+  with no unbacked claim), with the LLM-judge / live-recheck hardening deferred to
+  P3 (see [ADR-0008](#adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3)).
+- **Consequences:** Both verdicts are reproducible from the same inputs and easy to
+  explain (the score weights and the veto live in code, not in a prompt). The LLM is
+  used where it adds value and kept away from the final decision. The trade-off is
+  that the scoring weights are a hand-tuned policy we will revisit with eval data,
+  and the basic verify gate can be fooled by evidence that shares words with a claim
+  without supporting it — which is exactly what the P3 LLM-judge is meant to catch.
+
+## ADR-0010 — Policy B (first-party-only claims) + an LLM faithfulness judge; live re-check is eval-time
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** P2 shipped a *basic* verify gate
+  ([ADR-0009](#adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first))
+  that treated `third_party_snippet`-backed claims as merely *volatile* (a flag,
+  not a failure) and checked only that evidence was *present* (a substring), not
+  that it actually *supported* the claim. Both are gaps a groundedness-first product
+  cannot accept: the P1 validation showed third-party snippets are exactly the
+  sources that fail live re-verification, and "the evidence contains similar words"
+  is not the same as "the evidence backs this claim." The open question from
+  ADR-0008 — what to *do* about volatile sources — had to be answered.
+- **Decision:** Adopt **Policy B (first-party-only for claims)** and add an **LLM
+  faithfulness judge**, and draw a clear line about *where* live re-verification
+  belongs:
+    1. **Policy B.** A stated draft claim may rest only on an `own_site` or
+       `authoritative` fact. Enforced twice: the draft node offers only first-party
+       facts as claimable (third-party facts become context-only), and the verify
+       node hard-fails any claim whose backing is `third_party_snippet`
+       (`volatile-source`), rather than flagging it.
+    2. **Faithfulness judge.** `judge_faithfulness(claim, evidence, llm)` rates each
+       claim↔evidence pair `faithful` / `overreach` / `unsupported`. A claim
+       verifies only if it is backed, first-party, substring-anchored, **and**
+       faithful (`overreach` allowed only when `FAITHFULNESS_STRICT` is false;
+       `unsupported` always fails). The judge fails closed. The draft passes only if
+       **every** claim verifies.
+    3. **Live re-check is eval-time, not per-run.** Independently re-fetching each
+       `source_url` to confirm the evidence still holds is valuable but slow,
+       network-heavy, and flaky on the hot path. It is therefore a **P4 eval
+       metric**, reported by tier, not part of `run`. The per-run verify node is
+       network-free except for the single judge call.
+- **Consequences:** A passing draft now makes a precise, defensible promise — every
+  claim is first-party-sourced, substring-anchored, and judged faithful — and the
+  reviewer gets a per-claim audit trail (`claim_verdicts`) plus `groundedness_score`
+  and `faithfulness_score`. The honest framing is preserved: live *re-verifiability*
+  is reported separately, by tier, at eval time, never laundered into the per-run
+  faithfulness number. The costs: one LLM call per claim (bounded — drafts have few
+  hooks), a stricter gate that will route more drafts to human review, and reliance
+  on the judge's quality, which P4's eval harness is meant to measure and keep
+  honest.
