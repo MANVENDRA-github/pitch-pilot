@@ -20,7 +20,7 @@ from pitch_pilot.config import Settings
 from pitch_pilot.models.lead import Company
 from pitch_pilot.models.research import ResearchResult
 from pitch_pilot.models.search import SearchResult
-from pitch_pilot.nodes.research import extract_facts, run_research
+from pitch_pilot.nodes.research import classify_source_tier, extract_facts, run_research
 
 
 def _settings(**overrides) -> Settings:
@@ -357,6 +357,52 @@ class TestRunResearch:
 
         # The claim appears once despite being extracted from two sources.
         assert len(result.facts) == 1
+
+
+class TestSourceTier:
+    def test_classify_own_site_authoritative_and_third_party(self):
+        # The company's own domain — and its sub-pages and subdomains — are own_site.
+        assert classify_source_tier("https://acme.com", "acme.com") == "own_site"
+        assert classify_source_tier("https://acme.com/jobs", "acme.com") == "own_site"
+        assert classify_source_tier("https://www.acme.com/about", "acme.com") == "own_site"
+        assert classify_source_tier("https://blog.acme.com/post", "acme.com") == "own_site"
+        # A recognized primary source is authoritative.
+        assert classify_source_tier("https://www.sec.gov/filing/123", "acme.com") == "authoritative"
+        # Everything else defaults to a third-party snippet.
+        assert classify_source_tier("https://news.example.com/acme", "acme.com") == "third_party_snippet"
+        # With no known company domain, nothing can be recognized as own_site.
+        assert classify_source_tier("https://acme.com", "") == "third_party_snippet"
+
+    def test_run_research_tags_seed_own_site_and_search_third_party(self, monkeypatch):
+        seed_text = "Acme builds developer tools."
+        monkeypatch.setattr(research_module, "fetch_page", lambda *a, **k: seed_text)
+        hit = SearchResult(
+            title="Acme news", url="https://news.example.com/acme",
+            content="Acme raised $10M in 2026.",
+        )
+        llm = FakeLLM(
+            plans=[
+                {"done": False, "reason": "news", "next_query": "acme news"},
+                {"done": True, "reason": "done", "next_query": None},
+            ],
+            extracts={
+                "https://acme.com": [
+                    {"claim": "Acme builds developer tools", "evidence": "Acme builds developer tools",
+                     "category": "overview", "confidence": 0.9},
+                ],
+                "https://news.example.com/acme": [
+                    {"claim": "Acme raised $10M in 2026", "evidence": "Acme raised $10M in 2026",
+                     "category": "news", "confidence": 0.8},
+                ],
+            },
+        )
+        search = FakeSearch(results_by_query={"acme news": [hit]})
+
+        result = run_research(Company(domain="acme.com"), llm, search, _settings())
+
+        by_url = {f.source_url: f for f in result.facts}
+        assert by_url["https://acme.com"].source_tier == "own_site"
+        assert by_url["https://news.example.com/acme"].source_tier == "third_party_snippet"
 
 
 class TestResearchNodeAdapter:
