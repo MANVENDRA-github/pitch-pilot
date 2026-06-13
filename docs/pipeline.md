@@ -1,18 +1,20 @@
 # Pipeline
 
-> **Last updated:** 2026-06-05 · **Source files:** `src/pitch_pilot/graph/`, `src/pitch_pilot/nodes/`
+> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/graph/`, `src/pitch_pilot/nodes/`
 
 The pipeline is the deterministic outer graph that orchestrates a run. It is
 assembled with [LangGraph](glossary.md) on top of the typed
 [`PipelineState`](components/graph.md) contract.
 
 !!! note "Status"
-    The **`research_node`** and its [agentic research sub-loop](#the-agentic-research-sub-loop)
-    are implemented in **[P1](roadmap.md)** (plus a thin `research_node` graph
-    adapter). The deterministic outer-graph wiring (`build_pipeline()`) and the
-    remaining nodes (`qualify`, `draft`, `verify`, `log`) land in
-    **[P2](roadmap.md)**; for those, this page is the design spec the
-    implementation will follow, so it is written ahead of the code.
+    **Implemented end-to-end in [P2](roadmap.md).** `build_pipeline()` wires all
+    five nodes (`research` → `qualify` → `draft` → `verify` → `log`) over
+    `PipelineState` with the two conditional gates below, and the
+    `python -m pitch_pilot.cli run <domain>` command runs the whole thing. The
+    `research_node` and its [agentic sub-loop](#the-agentic-research-sub-loop) were
+    delivered in [P1](roadmap.md), and [P3](roadmap.md) hardened the `verify` node
+    into the real groundedness gate (first-party tier + substring + LLM faithfulness
+    judge — see [Groundedness](groundedness.md)). The graph shape is stable.
 
 ## The graph
 
@@ -64,41 +66,51 @@ state with its slice filled in. State accumulates; nothing is discarded.
   does the work; the `research_node(state)` graph adapter calls it and returns
   `{"research": ResearchResult}`. See [components/nodes.md](components/nodes.md).
 
-### `qualify_node` — score against the ICP
+### `qualify_node` — score against the ICP ✅ implemented (P2)
 
-- **Reads:** `company`, `research`, `icp`
-- **Writes:** `qualification: QualificationResult`
-- **What it does:** Scores the company against the declarative
-  [`ICP`](data-models.md) using the gathered facts; records `matched_signals` and
-  `missed_signals` and a human-readable `reason`.
+- **Reads:** `research`, `icp`
+- **Writes:** `qualification: QualificationResult`; sets `status` to `qualified` /
+  `disqualified`.
+- **What it does:** A **hybrid** judgement — the LLM semantically matches each ICP
+  attribute/signal against the facts (`match`/`no_match`/`unknown`, citing a fact),
+  then deterministic code computes a weighted fit score, applies a **hard veto** on
+  any matched negative signal, and decides against `QUALIFY_THRESHOLD`. Unknowns are
+  never guessed. Records `matched_signals`, `missed_signals`, and a `reason`. See
+  [Decisions → ADR-0009](decisions.md).
 - **Conditional edge:** if `qualified` is `False` → **`log_node`** (stop early);
   if `True` → **`draft_node`**.
 
-### `draft_node` — write grounded outreach
+### `draft_node` — write grounded outreach ✅ implemented (P2)
 
-- **Reads:** `company`, `research`, `qualification`
+- **Reads:** `research`, `qualification`
 - **Writes:** `draft: Draft`
-- **What it does:** Composes a subject + body **only from grounded facts**, so
-  every claim already has a citable source attached. Records `hooks_used`.
+- **What it does:** Composes a subject + body **only from grounded facts**.
+  Hard-numeric claims from `third_party_snippet` facts are withheld, and every hook
+  the model returns is validated back against the facts — so `hooks_used` is always
+  a subset of the research facts. See [Groundedness → Layer 3](groundedness.md).
 
-### `verify_node` — audit groundedness
+### `verify_node` — the groundedness gate ✅ hardened (P3)
 
 - **Reads:** `draft`, `research`
 - **Writes:** `verification: VerificationResult`
-- **What it does:** Extracts the factual claims in the draft, checks each against
-  a source, and computes a groundedness score. See [Groundedness](groundedness.md).
-- **Conditional edge (gate):** the draft passes only if
-  `groundedness_score ≥ GROUNDEDNESS_THRESHOLD`. Either way the run proceeds to
-  `log_node`; a failed draft is logged and flagged for the reviewer rather than
-  discarded.
+- **What it does:** Audits each claim (the draft's `hooks_used`) through four
+  checks — backed, first-party tier (Policy B), substring-anchored, and an **LLM
+  faithfulness judge**. The draft **passes only if every claim verifies.** Failures
+  are recorded by reason (`unbacked` / `volatile-source` / `not-substring` /
+  `overreach` / `unsupported`) with a per-claim audit trail. Network-free except
+  the judge call. See the [Groundedness methodology](groundedness.md).
+- **Edge:** always proceeds to `log_node`, which decides the outcome from the
+  verification verdict.
 
-### `log_node` — persist and queue for review
+### `log_node` — persist and queue for review ✅ implemented (P2)
 
 - **Reads:** the whole `PipelineState`
-- **Writes:** persistence side effects (no state change)
-- **What it does:** Persists the [`Lead`](data-models.md) and **enqueues it for
-  human review** via the [`Store`](components/storage.md). pitch-pilot never
-  auto-sends.
+- **Writes:** persistence side effects; sets the terminal `status`.
+- **What it does:** Builds a self-contained [`Lead`](data-models.md) (company +
+  qualification + draft + verification) and routes it via the
+  [`Store`](components/storage.md): a passing draft is **saved as `ready`**, a
+  failing one is **enqueued for `review`**, and a disqualified company is saved as
+  `disqualified`. pitch-pilot **never auto-sends** — a human approves first.
 
 ### `discover_node` — future seam
 
@@ -110,11 +122,14 @@ and emits `Company` objects; nothing downstream changes.
 
 | Gate | Condition | True | False |
 | --- | --- | --- | --- |
-| Qualification | `qualification.qualified` | → `draft_node` | → `log_node` (stop) |
-| Groundedness | `verification.groundedness_score ≥ GROUNDEDNESS_THRESHOLD` | draft marked passing | draft flagged, still logged |
+| Qualification (graph edge) | `qualification.qualified` | → `draft_node` | → `log_node` (logged `disqualified`) |
+| Groundedness (in `log_node`) | `verification.passed` | saved as `ready` | enqueued for `review` |
 
-Both gates are deterministic functions of the typed state, which keeps the run
-auditable.
+The qualification gate is a real conditional edge in the graph. The groundedness
+gate is realized inside the single `log_node` (both the draft and verify paths lead
+there, and it decides `ready` vs `review` from `verification.passed`) — equivalent
+to a conditional edge but keeping one terminal node. Both gates are deterministic
+functions of the typed state, which keeps the run auditable.
 
 ## The agentic research sub-loop
 
