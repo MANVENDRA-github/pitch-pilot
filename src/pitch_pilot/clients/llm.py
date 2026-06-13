@@ -159,15 +159,21 @@ class GeminiClient:
 
         Returns:
             The model's text response, stripped of surrounding whitespace.
+
+        Raises:
+            LLMError: if the provider request fails.
         """
         from google.genai import types
 
         client = self._ensure_client()
-        response = client.models.generate_content(
-            model=self._model,
-            contents=user,
-            config=types.GenerateContentConfig(system_instruction=system),
-        )
+        try:
+            response = client.models.generate_content(
+                model=self._model,
+                contents=user,
+                config=types.GenerateContentConfig(system_instruction=system),
+            )
+        except Exception as exc:  # normalize vendor SDK errors to LLMError
+            raise LLMError(f"Gemini request failed: {exc}") from exc
         return (response.text or "").strip()
 
     def complete_json(self, system: str, user: str) -> dict:
@@ -184,19 +190,23 @@ class GeminiClient:
             The parsed JSON object.
 
         Raises:
+            LLMError: if the provider request fails.
             LLMJSONError: if the response is not a valid JSON object.
         """
         from google.genai import types
 
         client = self._ensure_client()
-        response = client.models.generate_content(
-            model=self._model,
-            contents=user,
-            config=types.GenerateContentConfig(
-                system_instruction=_json_system(system),
-                response_mime_type="application/json",
-            ),
-        )
+        try:
+            response = client.models.generate_content(
+                model=self._model,
+                contents=user,
+                config=types.GenerateContentConfig(
+                    system_instruction=_json_system(system),
+                    response_mime_type="application/json",
+                ),
+            )
+        except Exception as exc:  # normalize vendor SDK errors to LLMError
+            raise LLMError(f"Gemini request failed: {exc}") from exc
         return _loads_json_lenient(response.text or "")
 
 
@@ -231,15 +241,21 @@ class GroqClient:
 
         Returns:
             The model's text response, stripped of surrounding whitespace.
+
+        Raises:
+            LLMError: if the provider request fails.
         """
         client = self._ensure_client()
-        response = client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        )
+        try:
+            response = client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            )
+        except Exception as exc:  # normalize vendor SDK errors to LLMError
+            raise LLMError(f"Groq request failed: {exc}") from exc
         return (response.choices[0].message.content or "").strip()
 
     def complete_json(self, system: str, user: str) -> dict:
@@ -256,17 +272,21 @@ class GroqClient:
             The parsed JSON object.
 
         Raises:
+            LLMError: if the provider request fails.
             LLMJSONError: if the response is not a valid JSON object.
         """
         client = self._ensure_client()
-        response = client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": _json_system(system)},
-                {"role": "user", "content": user},
-            ],
-            response_format={"type": "json_object"},
-        )
+        try:
+            response = client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {"role": "system", "content": _json_system(system)},
+                    {"role": "user", "content": user},
+                ],
+                response_format={"type": "json_object"},
+            )
+        except Exception as exc:  # normalize vendor SDK errors (e.g. json_validate_failed) to LLMError
+            raise LLMError(f"Groq request failed: {exc}") from exc
         return _loads_json_lenient(response.choices[0].message.content or "")
 
 
