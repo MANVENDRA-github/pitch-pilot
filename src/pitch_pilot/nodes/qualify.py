@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 
-from pitch_pilot.clients.llm import LLMClient, LLMError, get_llm_client
+from pitch_pilot.clients.llm import LLMClient, LLMError, get_llm_client, trim_to_token_budget
 from pitch_pilot.config import Settings, get_settings
 from pitch_pilot.graph.state import PipelineState
 from pitch_pilot.models.fact import Fact
@@ -41,9 +41,12 @@ logger = logging.getLogger(__name__)
 # the facts leave unknown are dropped and the remaining weights renormalized.
 _WEIGHTS = {"industry": 0.35, "size": 0.25, "region": 0.15, "positives": 0.25}
 
-# How many facts to show the assessor, and how long each line may be.
+# How many facts to show the assessor, how long each line may be, and a token
+# budget for the whole facts block so the prompt fits a small (8192-token)
+# free-tier context window even with many/long facts (see ADR-0013).
 _MAX_FACTS_IN_PROMPT = 40
 _MAX_FACT_CHARS = 240
+_FACTS_TOKEN_BUDGET = 3000
 
 _QUALIFY_SYSTEM = (
     "You are the qualification assessor for an SDR agent. You are given an Ideal "
@@ -71,12 +74,12 @@ _QUALIFY_SYSTEM = (
 
 
 def _facts_block(facts: list[Fact]) -> str:
-    """Render facts as compact, source-tagged lines for the assessor prompt."""
-    lines = []
-    for fact in facts[:_MAX_FACTS_IN_PROMPT]:
-        claim = fact.claim[:_MAX_FACT_CHARS]
-        lines.append(f"- [{fact.source_tier}] {claim} (source: {fact.source_url})")
-    return "\n".join(lines)
+    """Render facts as compact, source-tagged lines, bounded to a token budget."""
+    lines = [
+        f"- [{fact.source_tier}] {fact.claim[:_MAX_FACT_CHARS]} (source: {fact.source_url})"
+        for fact in facts[:_MAX_FACTS_IN_PROMPT]
+    ]
+    return "\n".join(trim_to_token_budget(lines, _FACTS_TOKEN_BUDGET))
 
 
 def _qualify_user_prompt(icp: ICP, facts: list[Fact]) -> str:

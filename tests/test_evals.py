@@ -43,7 +43,7 @@ _CANNED = [
      "flagged_claims": [], "category": "good_fit", "fact_count": 18},
     {"status": "ok", "domain": "c", "label": "not_qualified", "predicted_qualified": True,
      "draft_passed": False, "groundedness_score": 0.5, "faithfulness_score": 0.5,
-     "flagged_claims": ["unsupported: x", "volatile-source: y"], "category": "bad_fit", "fact_count": 10},
+     "flagged_claims": ["unsupported: x", "overreach: y"], "category": "bad_fit", "fact_count": 10},
     {"status": "ok", "domain": "d", "label": "not_qualified", "predicted_qualified": False,
      "draft_passed": None, "groundedness_score": None, "faithfulness_score": None,
      "flagged_claims": [], "category": "bad_fit", "fact_count": 4},
@@ -73,8 +73,8 @@ class TestMetrics:
     def test_failure_modes_counts_by_reason(self):
         fm = metrics.failure_modes(_CANNED)
         assert fm["unsupported"] == 1
-        assert fm["volatile-source"] == 1
-        assert fm["unbacked"] == 0
+        assert fm["overreach"] == 1
+        assert fm["structural"] == 0
 
     def test_facts_by_category_degradation(self):
         fbc = metrics.facts_by_category(_CANNED)
@@ -218,6 +218,48 @@ class TestPersistentFailureContinues:
         assert len(results) == 2  # run did not abort
         assert all(r["status"] == "error" for r in results)
         assert all("rate-limited" in r["error"] for r in results)
+
+
+class TestRedraft:
+    def test_qualification_is_frozen_and_draft_verify_recomputed(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(run_eval, "CACHE_DIR", tmp_path / "cache")
+        save_cached_research(ResearchResult(company=Company(domain="q.com"), facts=[]))
+        monkeypatch.setattr(run_eval, "run_draft",
+                            lambda *a, **k: Draft(subject="s", body="b", hooks_used=["h"]))
+        monkeypatch.setattr(run_eval, "run_verification", lambda *a, **k: _fake_ver())
+
+        records = [
+            {"status": "ok", "domain": "q.com", "label": "qualified", "predicted_qualified": True,
+             "score": 0.83, "qual_reason": "fit", "matched_signals": ["m"], "missed_signals": [],
+             "draft_passed": False, "groundedness_score": 0.0, "fact_count": 10},
+            {"status": "ok", "domain": "d.com", "label": "not_qualified", "predicted_qualified": False,
+             "draft_passed": None, "groundedness_score": None},
+            {"status": "error", "domain": "e.com", "error": "x"},
+        ]
+        out = run_eval.redraft(records, llm=object(), settings=_settings())
+
+        q = next(r for r in out if r["domain"] == "q.com")
+        # qualification fields are preserved verbatim
+        assert (q["predicted_qualified"], q["score"], q["qual_reason"]) == (True, 0.83, "fit")
+        assert q["matched_signals"] == ["m"]
+        # draft + verify are recomputed
+        assert q["draft_passed"] is True and q["groundedness_score"] == 1.0
+        assert q["hooks_used"] == ["h"] and q["from_cache"] is True
+        # disqualified and error records pass through untouched
+        assert next(r for r in out if r["domain"] == "d.com")["draft_passed"] is None
+        assert next(r for r in out if r["domain"] == "e.com")["status"] == "error"
+
+    def test_missing_cache_leaves_record_unchanged(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(run_eval, "CACHE_DIR", tmp_path / "cache")
+
+        def boom(*a, **k):
+            raise AssertionError("must not draft without cached research")
+        monkeypatch.setattr(run_eval, "run_draft", boom)
+
+        records = [{"status": "ok", "domain": "nocache.com", "predicted_qualified": True,
+                    "draft_passed": False, "score": 0.7, "qual_reason": "fit"}]
+        out = run_eval.redraft(records, llm=object(), settings=_settings())
+        assert out[0]["draft_passed"] is False  # unchanged (no cached research)
 
 
 class TestRecheck:

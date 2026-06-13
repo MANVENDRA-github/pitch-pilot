@@ -16,7 +16,7 @@ from functools import lru_cache
 from pydantic import Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_VALID_PROVIDERS = {"gemini", "groq"}
+_VALID_PROVIDERS = {"gemini", "groq", "cerebras"}
 
 
 class ConfigError(RuntimeError):
@@ -34,17 +34,31 @@ class Settings(BaseSettings):
         gemini_api_key: Google Gen AI (Gemini) API key. **Required.**
         tavily_api_key: Tavily search API key. **Required.**
         groq_api_key: Groq API key. Required only when ``llm_provider`` is ``"groq"``.
-        llm_provider: Active LLM provider — ``"gemini"`` (default) or ``"groq"``.
+        cerebras_api_key: Cerebras API key. Required only when ``llm_provider`` is
+            ``"cerebras"`` (its ~1M tokens/day free tier is used for the eval).
+        llm_provider: Active LLM provider — ``"gemini"`` (default), ``"groq"``, or
+            ``"cerebras"``.
         gemini_model: Gemini model id (default ``gemini-2.5-flash-lite``).
         groq_model: Groq model id (default ``llama-3.1-8b-instant``).
-        research_max_queries: Max search queries per research run (``>= 1``, default 4).
+        cerebras_model: Cerebras model id (default ``gpt-oss-120b``; available models
+            vary by account/tier — check the provider's ``models.list()``).
+        research_max_queries: Max search queries per research run (``>= 1``, default 3).
+        research_max_page_chars: Max characters of each fetched page / search-result
+            content fed to the extractor (``>= 500``, default 3500). The biggest
+            token lever — truncating the source text keeps cost and latency (and
+            free-tier token usage) down. The evidence-substring check runs against
+            this truncated text, so groundedness is preserved.
+        research_max_facts_per_source: Max facts extracted from a single source
+            (``>= 1``, default 5), so one page can't dominate a run.
         qualify_threshold: Minimum fit score, in ``[0, 1]``, for a company to
             qualify against the ICP (default 0.5). A matched negative signal vetoes
             qualification regardless of this score.
-        groundedness_threshold: Minimum groundedness score, in ``[0, 1]``, for a
-            draft to pass verification (default 0.9). With first-party-only
-            enforcement (P3) a passing draft scores 1.0, so this is effectively a
-            floor; it is kept for transparency and future tuning.
+        groundedness_threshold: A floor in ``[0, 1]`` kept for transparency and
+            future tuning (default 0.9). The verify gate is **all-or-nothing on
+            faithfulness** — a draft passes iff no body claim is ``unsupported`` (and
+            none is ``overreach`` under ``faithfulness_strict``), not by comparing
+            ``groundedness_score`` to this threshold; under strict mode a passing
+            draft scores 1.0.
         faithfulness_strict: When ``True`` (default), the verification gate treats
             an ``"overreach"`` faithfulness verdict as a failure; when ``False``,
             only ``"unsupported"`` fails. ``"unsupported"`` always fails.
@@ -65,15 +79,26 @@ class Settings(BaseSettings):
     groq_api_key: str | None = Field(
         default=None, description="Groq API key. Required only when LLM_PROVIDER=groq."
     )
+    cerebras_api_key: str | None = Field(
+        default=None, description="Cerebras API key. Required only when LLM_PROVIDER=cerebras."
+    )
 
     # --- Provider + model selection ---
-    llm_provider: str = Field(default="gemini", description='Active LLM provider: "gemini" or "groq".')
+    llm_provider: str = Field(default="gemini", description='Active LLM provider: "gemini", "groq", or "cerebras".')
     gemini_model: str = Field(default="gemini-2.5-flash-lite", description="Gemini model id.")
     groq_model: str = Field(default="llama-3.1-8b-instant", description="Groq model id.")
+    cerebras_model: str = Field(default="gpt-oss-120b", description="Cerebras model id (availability varies by account; check models.list()).")
 
     # --- Tunables ---
     research_max_queries: int = Field(
-        default=4, ge=1, description="Max number of search queries per research run."
+        default=3, ge=1, description="Max number of search queries per research run."
+    )
+    research_max_page_chars: int = Field(
+        default=3500, ge=500,
+        description="Max characters of each source's text fed to the extractor (token lever).",
+    )
+    research_max_facts_per_source: int = Field(
+        default=5, ge=1, description="Max facts extracted from a single source."
     )
     qualify_threshold: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Minimum fit score for a company to qualify against the ICP."
@@ -95,6 +120,15 @@ class Settings(BaseSettings):
                 f"LLM_PROVIDER must be one of {sorted(_VALID_PROVIDERS)}, got {value!r}."
             )
         return normalized
+
+    @property
+    def active_model(self) -> str:
+        """The model id for the currently selected ``llm_provider``."""
+        return {
+            "gemini": self.gemini_model,
+            "groq": self.groq_model,
+            "cerebras": self.cerebras_model,
+        }[self.llm_provider]
 
 
 @lru_cache(maxsize=1)

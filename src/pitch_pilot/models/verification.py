@@ -16,22 +16,25 @@ Faithfulness = Literal["faithful", "overreach", "unsupported"]
 
 
 class ClaimVerdict(BaseModel):
-    """The full audit trail for one claim in a draft.
+    """The full audit trail for one claim the draft body makes about the company.
 
-    One of these is produced per claim the draft stands on, whether it passed or
-    failed, so a reviewer can see exactly why each claim was accepted or rejected.
+    Under the 0.8.0 gate the faithfulness judge extracts each factual claim the draft
+    **body** makes about the company and rates it against the facts the draft is
+    grounded in. One ``ClaimVerdict`` is produced per such body claim — whether it was
+    judged faithful or not — so a reviewer can see exactly which fact (if any) backs
+    each claim and how the judge rated it.
 
     Attributes:
-        claim: The draft claim under audit (a `Draft` hook).
-        fact_used: The claim text of the backing `Fact` chosen to support it, or
-            ``None`` if no fact backs the claim.
-        source_url: The backing fact's source URL, or ``None`` if unbacked.
-        tier: The backing fact's `SourceTier`, or ``None`` if unbacked.
-        substring_ok: Whether the backing fact carries a verbatim ``evidence``
-            snippet (the extraction-time substring guard held). ``False`` when the
-            backing fact has no evidence.
-        faithfulness: The LLM judge's verdict for this claim↔evidence pair, or
-            ``None`` when the claim failed an earlier check and was not judged.
+        claim: The body claim under audit (extracted by the faithfulness judge).
+        fact_used: The claim text of the supporting `Fact` the judge cited, or
+            ``None`` when the claim is ``unsupported``.
+        source_url: The supporting fact's source URL, or ``None`` when unsupported.
+        tier: The supporting fact's `SourceTier`, or ``None`` when unsupported.
+        substring_ok: Whether the supporting fact carries a verbatim ``evidence``
+            snippet (the extraction-time substring guard held). ``False`` when there
+            is no supporting fact.
+        faithfulness: The LLM judge's verdict for this body claim
+            (``faithful`` / ``overreach`` / ``unsupported``).
     """
 
     claim: str
@@ -43,32 +46,37 @@ class ClaimVerdict(BaseModel):
 
 
 class VerificationResult(BaseModel):
-    """The result of auditing every claim in a `Draft` against its sources.
+    """The result of auditing a `Draft`: structural grounding plus body faithfulness.
 
-    This is the enforcement point for the hero guarantee. Under the P3 gate a draft
-    passes only if **every** claim is *verified*: backed by a first-party
-    (``own_site`` / ``authoritative``) `Fact` with a verbatim evidence snippet that
-    an LLM judge rates as faithfully supporting the claim (see the groundedness
-    methodology docs for the full picture).
+    This is the enforcement point for the hero guarantee. Under the 0.8.0 gate a draft
+    passes only if it is grounded in at least one first-party (``own_site`` /
+    ``authoritative``) `Fact`, has a non-empty body, the faithfulness judge ran, and
+    **no body claim is ``unsupported``** (and none is ``overreach`` when
+    ``FAITHFULNESS_STRICT``). Source-text substring grounding lives at extraction, so
+    the hooks are grounded by construction; this result audits the body's *support*
+    (see the groundedness methodology docs for the full picture).
 
     Attributes:
-        groundedness_score: Fraction of claims that are fully verified, in
-            ``[0, 1]`` (``verified_claims / total_claims``). Reported even when the
-            draft passes.
-        faithfulness_score: Fraction of claims the judge rated ``"faithful"``, in
-            ``[0, 1]`` (``faithful_claims / total_claims``).
-        total_claims: Total number of claims checked (the draft's hooks).
-        grounded_claims: Number of claims that are fully verified (the numerator of
-            ``groundedness_score``).
-        tier_breakdown: Count of claims per backing source tier, e.g.
-            ``{"own_site": 2, "unbacked": 1}``.
-        claim_verdicts: The per-claim audit trail (see `ClaimVerdict`).
-        flagged_claims: Human-readable failure lines for the claims that did **not**
-            verify, each prefixed with the specific reason (``unbacked:`` /
-            ``volatile-source:`` / ``not-substring:`` / ``overreach:`` /
-            ``unsupported:``).
-        passed: ``True`` only if there is at least one claim and every claim is
-            verified.
+        groundedness_score: Fraction of body claims that count as verified, in
+            ``[0, 1]`` (``verified_claims / total_body_claims``), where a claim is
+            verified when the judge rates it ``faithful`` (or ``overreach`` when
+            ``FAITHFULNESS_STRICT`` is off). Under the default strict mode this equals
+            ``faithful_claims / total_body_claims``. ``0.0`` when the draft is
+            ungrounded or its body is empty; ``1.0`` when a grounded body makes no
+            checkable company claim.
+        faithfulness_score: Fraction of body claims the judge rated ``"faithful"``, in
+            ``[0, 1]`` (``faithful_claims / total_body_claims``).
+        total_claims: Number of body claims the judge extracted and checked.
+        grounded_claims: Number of body claims that count as verified (the numerator
+            of ``groundedness_score``).
+        tier_breakdown: Count of the draft's grounding facts (hooks) per source tier,
+            e.g. ``{"own_site": 2, "authoritative": 1}``.
+        claim_verdicts: The per-body-claim audit trail (see `ClaimVerdict`).
+        flagged_claims: Human-readable failure lines, each prefixed with the specific
+            reason (``structural:`` / ``overreach:`` / ``unsupported:`` /
+            ``judge-error:``).
+        passed: ``True`` only if the draft is grounded, the body is non-empty, the
+            judge ran, and no body claim failed.
     """
 
     groundedness_score: float = Field(ge=0.0, le=1.0)

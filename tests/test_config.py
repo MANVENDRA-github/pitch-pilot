@@ -78,7 +78,9 @@ def test_valid_settings_load_with_defaults(monkeypatch, tmp_path):
     assert settings.tavily_api_key == "t-key"
     assert settings.groq_api_key is None
     assert settings.llm_provider == "gemini"  # default
-    assert settings.research_max_queries == 4  # default
+    assert settings.research_max_queries == 3  # default (leaned out — ADR-0012)
+    assert settings.research_max_page_chars == 3500  # default (token lever)
+    assert settings.research_max_facts_per_source == 5  # default
     assert settings.groundedness_threshold == 0.9  # default
     assert settings.gemini_model  # has a sensible default
     assert settings.groq_model

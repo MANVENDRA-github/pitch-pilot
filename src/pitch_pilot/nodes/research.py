@@ -56,11 +56,15 @@ _AUTHORITATIVE_HOSTS: frozenset[str] = frozenset({"sec.gov"})
 RESEARCH_DIMENSIONS: tuple[str, ...] = ("overview", "news", "hiring", "tech")
 _VALID_CATEGORIES = set(RESEARCH_DIMENSIONS)
 
-# Hard caps that bound a single research run regardless of the planner's choices.
-MAX_FACTS_PER_SOURCE = 8       # cap extraction per page so one source can't dominate
+# Hard caps that bound a single research run. The page-char and per-source caps are
+# the lean *fallback* defaults used when `extract_facts` is called without explicit
+# limits; the shipping defaults live in `Settings` (`research_max_page_chars`,
+# `research_max_facts_per_source`) and `run_research` passes those through. See
+# ADR-0012 for why research depth is leaned out by default.
+MAX_FACTS_PER_SOURCE = 5       # fallback per-source fact cap (Settings overrides)
 MAX_EVIDENCE_CHARS = 200       # evidence snippet length cap (mirrors Fact.evidence)
 SEARCH_RESULTS_PER_QUERY = 4   # how many hits to extract from per search query
-MAX_TEXT_CHARS = 12_000        # cap the text sent to the extractor (cost / latency)
+MAX_TEXT_CHARS = 3_500         # fallback page-text cap fed to the extractor (Settings overrides)
 
 _WHITESPACE = re.compile(r"\s+")
 
@@ -199,17 +203,24 @@ def extract_facts(
     source_title: str | None,
     llm: LLMClient,
     company_domain: str | None = None,
+    *,
+    max_page_chars: int = MAX_TEXT_CHARS,
+    max_facts_per_source: int = MAX_FACTS_PER_SOURCE,
 ) -> list[Fact]:
     """Extract grounded `Fact`s from a single source's text.
 
     This is the groundedness guard. It asks the LLM (via
     `LLMClient.complete_json`) to return only claims that the supplied ``text``
     explicitly supports, each with a verbatim ``evidence`` snippet. Every
-    candidate is then checked: its evidence must actually appear in ``text`` (a
-    whitespace- and case-insensitive substring match). Candidates that fail the
+    candidate is then checked: its evidence must actually appear in the source text
+    (a whitespace- and case-insensitive substring match). Candidates that fail the
     check — typically claims the model pulled from its own prior knowledge — are
-    dropped and logged. Extraction is capped at `MAX_FACTS_PER_SOURCE` facts per
-    source.
+    dropped and logged. Extraction is capped at ``max_facts_per_source`` per source.
+
+    The source text is truncated to ``max_page_chars`` **before** extraction, and
+    the substring check runs against that *same* truncated text — so the model only
+    ever sees, and can only ground claims in, the text we actually verify against.
+    This truncation is the dominant token/cost lever (see ADR-0012).
 
     Each surviving fact is tagged with a `SourceTier` via `classify_source_tier`
     (``company_domain`` decides what counts as the company's own site).
@@ -221,20 +232,25 @@ def extract_facts(
         llm: The LLM client used to perform extraction.
         company_domain: The company's own domain, used to tier the source. When
             omitted, no source can be recognized as ``"own_site"``.
+        max_page_chars: Truncate the source text to this many characters before
+            extraction (and grounding). Defaults to `MAX_TEXT_CHARS`.
+        max_facts_per_source: Stop after this many grounded facts from this source.
+            Defaults to `MAX_FACTS_PER_SOURCE`.
 
     Returns:
         A list of grounded `Fact`s (possibly empty). Never raises for a bad page
         or a bad LLM response — those cases yield an empty list.
     """
-    text = (text or "").strip()
-    if not text:
+    # Truncate ONCE: the model sees exactly the text we will ground against.
+    source_text = (text or "").strip()[:max_page_chars]
+    if not source_text:
         return []
 
     user_prompt = (
         f"SOURCE URL: {source_url}\n"
         f"SOURCE TITLE: {source_title or '(unknown)'}\n\n"
         "TEXT:\n"
-        f"{text[:MAX_TEXT_CHARS]}"
+        f"{source_text}"
     )
     try:
         payload = llm.complete_json(_EXTRACTOR_SYSTEM, user_prompt)
@@ -242,7 +258,7 @@ def extract_facts(
         logger.warning("extractor LLM call failed for %s: %s", source_url, exc)
         return []
 
-    normalized_source = _normalize(text)
+    normalized_source = _normalize(source_text)
     source_tier = classify_source_tier(source_url, company_domain)
     facts: list[Fact] = []
     for item in _facts_payload(payload):
@@ -279,8 +295,8 @@ def extract_facts(
             logger.info("skipped invalid fact from %s: %s", source_url, exc)
             continue
         facts.append(fact)
-        if len(facts) >= MAX_FACTS_PER_SOURCE:
-            logger.info("hit per-source fact cap (%d) for %s", MAX_FACTS_PER_SOURCE, source_url)
+        if len(facts) >= max_facts_per_source:
+            logger.info("hit per-source fact cap (%d) for %s", max_facts_per_source, source_url)
             break
     return facts
 
@@ -407,7 +423,11 @@ def run_research(
         seed_text = ""
         result.errors.append(f"seed fetch raised for {seed_url}: {exc}")
     if seed_text:
-        accumulate(extract_facts(seed_text, seed_url, company.name, llm, company.domain))
+        accumulate(extract_facts(
+            seed_text, seed_url, company.name, llm, company.domain,
+            max_page_chars=settings.research_max_page_chars,
+            max_facts_per_source=settings.research_max_facts_per_source,
+        ))
     else:
         result.errors.append(f"seed page returned no usable text: {seed_url}")
 
@@ -442,7 +462,11 @@ def run_research(
             if not hit.content or not hit.url:
                 continue
             try:
-                hit_facts = extract_facts(hit.content, hit.url, hit.title, llm, company.domain)
+                hit_facts = extract_facts(
+                    hit.content, hit.url, hit.title, llm, company.domain,
+                    max_page_chars=settings.research_max_page_chars,
+                    max_facts_per_source=settings.research_max_facts_per_source,
+                )
             except Exception as exc:  # noqa: BLE001 — extraction must not crash the run
                 result.errors.append(f"extraction failed for {hit.url}: {exc}")
                 continue

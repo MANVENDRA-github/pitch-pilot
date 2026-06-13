@@ -1,6 +1,6 @@
 # Eval Harness
 
-> **Last updated:** 2026-06-13 · **Source files:** `evals/run_eval.py`, `evals/metrics.py`
+> **Last updated:** 2026-06-14 · **Source files:** `evals/run_eval.py`, `evals/metrics.py`
 
 The eval harness produces the headline numbers in [Evaluation](../evals.md). It
 lives outside the package (`evals/`, not `src/`) because it is tooling, not library
@@ -9,11 +9,12 @@ It is designed around free-tier rate limits: **cache, checkpoint, back off, resu
 
 ## `run_eval.py` — the runner
 
-Three commands via `python -m evals.run_eval <command>`:
+Four commands via `python -m evals.run_eval <command>`:
 
 | Command | What it does | Network |
 | --- | --- | --- |
 | `run` (default) | Evaluate each company: research (cached) → qualify → draft → verify; checkpoint each result; write a report; print aggregates. | LLM + search |
+| `redraft` | Re-run **only** draft + verify for already-qualified companies, reusing cached research **and** each record's frozen qualification verdict; rewrite the results file in place. Lets the draft/verify logic change without re-researching or perturbing the qualification matrix. | LLM only |
 | `recheck` | Re-fetch each used claim's source and confirm the evidence still appears → live-verifiability by tier. | HTTP fetch only |
 | `report` | Recompute metrics from existing results (+ recheck cache) and rewrite the report. | none |
 

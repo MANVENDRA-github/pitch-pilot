@@ -1,13 +1,15 @@
 """Unit tests for the draft node. No network access.
 
 The LLM is a fake that returns a fixed draft payload. The behaviors under test
-are the groundedness guarantees the node enforces on the model's output:
+are the groundedness guarantees the node enforces on the model's output (P5,
+selection-by-id — see ADR-0014):
 
-* ``hooks_used`` is always a subset of the real research facts — a hook the model
-  invents is discarded;
-* under Policy B, NO ``third_party_snippet`` fact can become a hook — only
-  ``own_site`` / ``authoritative`` facts are claimable (third-party facts may be
-  passed as context but never as a stated claim);
+* ``hooks_used`` resolves the model's selected fact **ids** to real research facts —
+  an out-of-range or invented id is dropped;
+* under Policy B, NO ``third_party_snippet`` fact is even claimable, so it can never
+  become a hook (third-party facts may be passed as context but never selected),
+  even if the model echoes the claim text verbatim;
+* a verbatim echo of a *claimable* fact's claim resolves as a defensive fallback;
 * no claimable facts (or an LLM failure) yields an empty draft, not a crash.
 """
 
@@ -62,50 +64,50 @@ class FakeLLM:
 
 
 class TestRunDraft:
-    def test_hooks_are_a_subset_of_facts(self):
-        llm = FakeLLM({
-            "subject": "Loved your dev tools",
-            "body": "Hi Acme, ...",
-            "hooks": [
-                "Acme builds developer tools",       # real fact
-                "Acme is the #1 fintech in the world",  # fabricated
-            ],
-        })
+    def test_selected_ids_resolve_to_facts(self):
+        # claimable = [_OWN_SOFT] -> id 1; id 5 is out of range and is dropped.
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [1, 5]})
         draft = run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
         assert draft.hooks_used == ["Acme builds developer tools"]
-        fact_claims = {"Acme builds developer tools"}
-        assert all(h in fact_claims for h in draft.hooks_used)
 
-    def test_refuses_third_party_numeric_but_allows_own_site_numeric(self):
-        llm = FakeLLM({
-            "subject": "s",
-            "body": "b",
-            "hooks": ["Acme raised $50M Series B", "Acme has 200 employees"],
-        })
+    def test_invalid_selection_yields_no_hooks(self):
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [99]})
+        draft = run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
+        assert draft.hooks_used == []
+
+    def test_only_own_site_numeric_is_claimable_not_third_party(self):
+        # The third-party numeric is not claimable, so id 1 is the own_site fact.
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [1]})
         draft = run_draft(_research([_OWN_NUMERIC, _TP_NUMERIC]), _qual(), llm, _settings())
         assert "Acme has 200 employees" in draft.hooks_used        # own_site numeric: ok
-        assert "Acme raised $50M Series B" not in draft.hooks_used  # third-party: refused
+        assert "Acme raised $50M Series B" not in draft.hooks_used  # third-party: not claimable
 
-    def test_third_party_fact_cannot_be_a_hook_even_when_soft(self):
-        # Policy B: a third_party_snippet fact may inform context but never a claim.
-        llm = FakeLLM({"subject": "s", "body": "b", "hooks": ["Acme is popular with developers"]})
+    def test_third_party_claim_echo_is_never_a_hook(self):
+        # Policy B: even if the model echoes a third_party_snippet fact's claim text,
+        # it is not claimable and can never become a hook.
+        llm = FakeLLM({"subject": "s", "body": "b",
+                       "facts_used": ["Acme is popular with developers"]})
         draft = run_draft(_research([_OWN_SOFT, _TP_SOFT]), _qual(), llm, _settings())
-        assert "Acme is popular with developers" not in draft.hooks_used
+        assert draft.hooks_used == []
 
-    def test_claim_pool_excludes_all_third_party_facts(self):
-        # Only first-party facts are claimable; the model offered both, hooks both.
-        llm = FakeLLM({
-            "subject": "s", "body": "b",
-            "hooks": ["Acme builds developer tools", "Acme is popular with developers"],
-        })
+    def test_verbatim_claim_echo_resolves_as_fallback(self):
+        # A model that echoes a claimable fact's exact claim (not its id) still resolves.
+        llm = FakeLLM({"subject": "s", "body": "b",
+                       "facts_used": ["Acme builds developer tools"]})
         draft = run_draft(_research([_OWN_SOFT, _TP_SOFT]), _qual(), llm, _settings())
         assert draft.hooks_used == ["Acme builds developer tools"]
 
+    def test_hooks_are_deduped_preserving_order(self):
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [2, 1, 1, 2]})
+        draft = run_draft(_research([_OWN_SOFT, _OWN_NUMERIC]), _qual(), llm, _settings())
+        assert draft.hooks_used == ["Acme has 200 employees", "Acme builds developer tools"]
+
     def test_subject_and_body_passed_through(self):
-        llm = FakeLLM({"subject": "  Hello Acme  ", "body": "  Body here  ", "hooks": []})
+        llm = FakeLLM({"subject": "  Hello Acme  ", "body": "  Body here  ", "facts_used": []})
         draft = run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
         assert draft.subject == "Hello Acme"
         assert draft.body == "Body here"
+        assert draft.hooks_used == []
 
     def test_no_claimable_facts_yields_empty_draft(self):
         # Only third-party facts -> nothing is claimable under Policy B.
@@ -116,6 +118,28 @@ class TestRunDraft:
     def test_llm_failure_yields_empty_draft(self):
         draft = run_draft(_research([_OWN_SOFT]), _qual(), FakeLLM(raises=True), _settings())
         assert draft.hooks_used == []
+
+
+class TestContextCapGuard:
+    def test_large_facts_list_stays_under_context_cap(self):
+        from pitch_pilot.clients.llm import CONTEXT_TOKEN_CAP
+        from pitch_pilot.nodes.draft import (
+            _DRAFT_SYSTEM,
+            _claimable_facts,
+            _context_facts,
+            _draft_user_prompt,
+        )
+
+        own = [Fact(claim=f"Acme ships API product feature {i} at scale",
+                    source_url=f"https://acme.com/long/path/page-{i}", evidence="e",
+                    source_tier="own_site") for i in range(300)]
+        tp = [Fact(claim=f"Third party says thing {i} about Acme",
+                   source_url=f"https://blog.example.com/post-{i}", evidence="e",
+                   source_tier="third_party_snippet") for i in range(300)]
+        facts = own + tp
+        prompt = _draft_user_prompt("Acme", _claimable_facts(facts), _context_facts(facts), _qual())
+        est_tokens = (len(_DRAFT_SYSTEM) + len(prompt)) / 4
+        assert est_tokens < CONTEXT_TOKEN_CAP
 
 
 class TestDraftNodeAdapter:
@@ -129,7 +153,7 @@ class TestDraftNodeAdapter:
             company=Company(domain="acme.com", name="Acme"), icp=icp,
             research=_research([_OWN_SOFT]), qualification=_qual(),
         )
-        llm = FakeLLM({"subject": "s", "body": "b", "hooks": ["Acme builds developer tools"]})
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [1]})
         update = draft_node(state, llm=llm, settings=_settings())
         assert set(update) == {"draft", "status"}
         assert update["status"] == "drafted"

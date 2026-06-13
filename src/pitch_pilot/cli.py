@@ -97,7 +97,7 @@ def run_smoke() -> int:
         from pitch_pilot.clients.llm import get_llm_client
 
         client = get_llm_client(settings)
-        model = settings.gemini_model if settings.llm_provider == "gemini" else settings.groq_model
+        model = settings.active_model
         reply = client.complete(
             system="You are a terse assistant. Reply with exactly what is asked and nothing else.",
             user="Reply with the single word: OK",

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pitch_pilot.clients.fetch import fetch_page
 from pitch_pilot.clients.llm import (
+    CerebrasClient,
     GeminiClient,
     GroqClient,
     LLMClient,
@@ -21,6 +22,7 @@ __all__ = [
     "LLMClient",
     "GeminiClient",
     "GroqClient",
+    "CerebrasClient",
     "get_llm_client",
     "LLMError",
     "LLMJSONError",

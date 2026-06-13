@@ -266,3 +266,123 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   verification. The 8B model malforms the structured JSON under load, so headline
   numbers are produced on a capable model (Groq 70B or Gemini), recorded alongside
   the numbers.
+
+## ADR-0012 — Research depth is leaned out by default (quota + cost/latency), and the eval runs at shipping depth
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** The first full-eval attempt showed one company's research consuming
+  ~40k tokens — feeding the extractor up to ~12,000 characters per source across
+  ~13 extraction calls. That blew Groq's free-tier **100k tokens/day** cap after
+  ~2 companies, stalling the eval ([ADR-0011](#adr-0011-the-eval-set-includes-negatives--sparse-the-harness-caches-checkpoints-and-backs-off)).
+  But the deeper point is that this cost is real in production too: most of those
+  characters are boilerplate/nav/footer text that adds little grounded signal. A
+  leaner research pass is both the quota fix **and** a genuine cost/latency
+  improvement — and it must be the *default*, so the eval measures the same depth we
+  actually ship (no eval-vs-prod mismatch).
+- **Decision:** Make research depth tunable via `Settings` and adopt **leaner
+  defaults** as the shipping configuration:
+    - `RESEARCH_MAX_QUERIES` 4 → **3**;
+    - `RESEARCH_MAX_PAGE_CHARS` (new) → **3500** — truncate each source's text fed
+      to the extractor (was ~12,000). This is the dominant token lever;
+    - `RESEARCH_MAX_FACTS_PER_SOURCE` 8 → **5**.
+  Crucially, truncation happens **once**, before extraction, and the
+  evidence-substring grounding check runs against that *same* truncated text — so
+  the model can only ground claims in what we verify, and groundedness is fully
+  preserved.
+- **Consequences:** Per-company research token use drops by roughly half (extraction
+  input falls from ~3,000 to ~900 tokens/call), so more companies fit in the daily
+  cap and every run is cheaper and faster — at full shipping fidelity. The trade-off
+  is slightly thinner research (fewer queries, fewer facts/source, less page text),
+  which can lower recall on facts buried deep in a long page; we accept that for the
+  cost/latency/quota win and because the highest-value facts are near the top of a
+  company's own pages. The caps are env-tunable for runs that want more depth.
+
+## ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier
+
+- **Date:** 2026-06-13
+- **Status:** Accepted
+- **Context:** Even after leaning out research depth ([ADR-0012](#adr-0012-research-depth-is-leaned-out-by-default-quota--costlatency-and-the-eval-runs-at-shipping-depth)),
+  the full eval (~17 companies) needs more tokens than Groq's free **100k/day** cap
+  allows in a single day, so a complete, reproducible run kept spilling across days
+  (and stalling on per-minute limits). Gemini's free tier is even tighter (20
+  requests/day). We wanted to finish the eval in one session without paying.
+- **Decision:** Add **Cerebras** as a third LLM provider. Its free tier allows
+  **~1M tokens/day (~10x Groq)** — enough to run the whole eval set in one session.
+  `CerebrasClient` uses the OpenAI-compatible `cerebras-cloud-sdk` and mirrors
+  `GroqClient` (same JSON-mode + lenient parsing, same error normalization to
+  `LLMError`). Its free tier caps a single request at **8,192 tokens**, so prompt
+  builders bound their variable-length facts payloads (`trim_to_token_budget` /
+  `CONTEXT_TOKEN_CAP`) to stay under it; the lean page cap already keeps extraction
+  prompts small.
+  - **Model note:** available models vary by Cerebras account/tier. Our free-tier
+    account does **not** offer Llama-3.3-70B (only `gpt-oss-120b` and `zai-glm-4.7`),
+    so the default is **`gpt-oss-120b`** (a capable model that handles the structured
+    JSON well). Comparability is preserved a different way: the full eval is re-run
+    **fresh and internally consistent on this one model**, and the earlier
+    full-depth Groq partial is **discarded** (its cache cleared) rather than mixed —
+    so the headline numbers come from a single model + depth, recorded with the run.
+- **Consequences:** The eval can run end-to-end in one session on a capable 70B
+  model at no cost, and the provider seam ([ADR-0002](#adr-0002-external-providers-sit-behind-thin-client-interfaces))
+  made this a pure addition — one new client + one factory branch, no pipeline
+  changes. The trade-offs: a new optional dependency (`cerebras-cloud-sdk`, lazily
+  imported so it is only needed when the provider is selected), and a tighter 8,192-
+  token context window that the prompt-budget guard must respect (a useful
+  discipline regardless of provider).
+
+## ADR-0014 — Draft grounding is decoupled: source-substring lives at extraction; draft grounding = fact-selection + a body-faithfulness judge
+
+- **Date:** 2026-06-14
+- **Status:** Accepted
+- **Context:** The P3 draft/verify design asked the model to copy a fact's text
+  **verbatim** into `hooks`, then validated each hook as a substring of the source
+  and ran a faithfulness judge per claim↔evidence pair. This was brittle in exactly
+  the wrong direction: a *faithful paraphrase* — the normal, desirable way to write
+  outreach — was discarded because it was not a verbatim copy, while the check added
+  no real safety (the fact it pointed at had already passed the extraction-time
+  substring guard). The first full Cerebras run showed the damage: most qualified
+  companies produced `draft_passed=false`, `groundedness=0.0` with **empty**
+  `claim_verdicts` — the hooks simply failed to match, so there was nothing left to
+  judge. The numbers were an artifact of the matching layer, not of grounding.
+- **Decision:** Move the source-text grounding check to where it belongs —
+  **extraction**, where a `Fact`'s `evidence` is already substring-verified against
+  its source ([ADR-0007](#adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check))
+  — and split the draft-time guarantee into two parts:
+  1. **Draft grounding = fact-selection.** The model is shown the claimable
+     (first-party, Policy B) facts as a **numbered** list and returns the **ids** of
+     the facts it grounded the email in. `hooks_used` is the canonical claim text of
+     those facts, so each hook is a real first-party fact **by construction**. The
+     body is free prose the model may paraphrase. The draft layer does **not**
+     re-substring-check or fuzzy-match hook text against the source.
+  2. **Verify = structural assert + body-faithfulness judge.** The verify node
+     re-resolves each hook to a first-party fact (a `structural` failure if any does
+     not — an invariant violation), then runs **one** LLM judge over the draft
+     **body** against the selected facts, extracting every factual claim the body
+     makes about the company and rating it `faithful` / `overreach` / `unsupported`.
+     The draft passes iff it is grounded, the body is non-empty, the judge ran, and
+     no body claim is `unsupported` (and none is `overreach` under
+     `FAITHFULNESS_STRICT`). `groundedness_score` is redefined as
+     `faithful_body_claims / total_body_claims` (verified / total under strict mode).
+  - **Why this is stronger than verbatim-hook validation.** It checks the thing that
+    actually matters — *does the prose the human will send overstate the sources?* —
+    instead of penalizing paraphrase. Source-text grounding is not weakened: it
+    still happens, once, at extraction, against the exact text we verify. And the
+    judge now audits the **body** a reviewer reads, not a verbatim hook list the
+    reader never sees.
+- **Re-running honestly.** Only **draft + verify** were re-run (new `redraft`
+  command), reusing cached research **and** the frozen qualification verdicts, so the
+  qualification matrix is untouched (TP=10, FP=3, TN=4, FN=0; F1 0.870) and the new
+  draft/verify numbers are real and comparable. On `cerebras/gpt-oss-120b`
+  (2026-06-14): draft-gate pass-rate **11/13 = 0.846**, mean groundedness **0.936**,
+  own_site live re-verifiability **0.90 (45/50)**. The three qualification false
+  positives and the *industry-gating* idea that would address two of them are
+  recorded as **future work** in [Evaluation](evals.md) — deliberately **not**
+  applied now, because tuning the scorer on the same 17-company set and reporting the
+  improved number on that set would not be defensible.
+- **Consequences:** Grounding is now robust to paraphrase, the per-run cost drops
+  (one body-judge call instead of one per hook), and the reasons the gate can emit
+  shrink to `unsupported` / `overreach` / `structural` / `judge-error`. The
+  `ClaimVerdict` audit trail now describes **body** claims (with the supporting fact
+  cited by id), and `VerificationResult.tier_breakdown` counts the grounding hooks
+  by tier. The substring-anchoring guarantee is unchanged — it simply lives in one
+  place now.

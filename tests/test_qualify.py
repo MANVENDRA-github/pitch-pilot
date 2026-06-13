@@ -157,6 +157,22 @@ class TestRunQualification:
         assert result.qualified is False
 
 
+class TestContextCapGuard:
+    def test_large_facts_list_stays_under_context_cap(self):
+        from pitch_pilot.clients.llm import CONTEXT_TOKEN_CAP
+        from pitch_pilot.nodes.qualify import _QUALIFY_SYSTEM, _qualify_user_prompt
+
+        facts = [
+            Fact(claim=f"Acme fact number {i} about payments, fraud and growth at scale",
+                 source_url=f"https://acme.com/some/fairly/long/path/page-{i}",
+                 evidence="e", source_tier="own_site")
+            for i in range(500)
+        ]
+        prompt = _qualify_user_prompt(_icp(), facts)
+        est_tokens = (len(_QUALIFY_SYSTEM) + len(prompt)) / 4  # ~4 chars/token
+        assert est_tokens < CONTEXT_TOKEN_CAP
+
+
 class TestQualifyNodeAdapter:
     def test_returns_qualification_and_status(self):
         assessment = {

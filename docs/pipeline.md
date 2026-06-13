@@ -1,6 +1,6 @@
 # Pipeline
 
-> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/graph/`, `src/pitch_pilot/nodes/`
+> **Last updated:** 2026-06-14 · **Source files:** `src/pitch_pilot/graph/`, `src/pitch_pilot/nodes/`
 
 The pipeline is the deterministic outer graph that orchestrates a run. It is
 assembled with [LangGraph](glossary.md) on top of the typed
@@ -13,8 +13,9 @@ assembled with [LangGraph](glossary.md) on top of the typed
     `python -m pitch_pilot.cli run <domain>` command runs the whole thing. The
     `research_node` and its [agentic sub-loop](#the-agentic-research-sub-loop) were
     delivered in [P1](roadmap.md), and [P3](roadmap.md) hardened the `verify` node
-    into the real groundedness gate (first-party tier + substring + LLM faithfulness
-    judge — see [Groundedness](groundedness.md)). The graph shape is stable.
+    into the real groundedness gate (later refined in 0.8.0 to a structural hook
+    check + an LLM body-faithfulness judge — see [Groundedness](groundedness.md)).
+    The graph shape is stable.
 
 ## The graph
 
@@ -80,25 +81,28 @@ state with its slice filled in. State accumulates; nothing is discarded.
 - **Conditional edge:** if `qualified` is `False` → **`log_node`** (stop early);
   if `True` → **`draft_node`**.
 
-### `draft_node` — write grounded outreach ✅ implemented (P2)
+### `draft_node` — write grounded outreach ✅ implemented (P2; selection in 0.8.0)
 
 - **Reads:** `research`, `qualification`
 - **Writes:** `draft: Draft`
-- **What it does:** Composes a subject + body **only from grounded facts**.
-  Hard-numeric claims from `third_party_snippet` facts are withheld, and every hook
-  the model returns is validated back against the facts — so `hooks_used` is always
-  a subset of the research facts. See [Groundedness → Layer 3](groundedness.md).
+- **What it does:** Writes a subject + free-prose body and grounds it by
+  **selecting facts**: only first-party facts are offered (numbered), and the model
+  returns the **ids** it grounded the email in, so `hooks_used` is always a subset of
+  the research facts (grounded by construction). See
+  [Groundedness → Layer 3](groundedness.md).
 
-### `verify_node` — the groundedness gate ✅ hardened (P3)
+### `verify_node` — the groundedness gate ✅ hardened (P3; body judge in 0.8.0)
 
 - **Reads:** `draft`, `research`
 - **Writes:** `verification: VerificationResult`
-- **What it does:** Audits each claim (the draft's `hooks_used`) through four
-  checks — backed, first-party tier (Policy B), substring-anchored, and an **LLM
-  faithfulness judge**. The draft **passes only if every claim verifies.** Failures
-  are recorded by reason (`unbacked` / `volatile-source` / `not-substring` /
-  `overreach` / `unsupported`) with a per-claim audit trail. Network-free except
-  the judge call. See the [Groundedness methodology](groundedness.md).
+- **What it does:** Re-resolves the draft's hooks to first-party facts
+  (structural), then runs **one LLM judge** over the draft **body** against those
+  facts, rating each body claim `faithful` / `overreach` / `unsupported`. The draft
+  **passes** iff grounded, body non-empty, judge ran, and no body claim is
+  `unsupported` (and none `overreach` under `FAITHFULNESS_STRICT`). Failures are
+  recorded by reason (`structural` / `overreach` / `unsupported` / `judge-error`)
+  with a per-body-claim audit trail. Network-free except the judge call. See the
+  [Groundedness methodology](groundedness.md).
 - **Edge:** always proceeds to `log_node`, which decides the outcome from the
   verification verdict.
 

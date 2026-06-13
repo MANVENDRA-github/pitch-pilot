@@ -10,6 +10,11 @@ Commands (``python -m evals.run_eval <command>``):
 
 * ``run`` (default) — evaluate each company (research[cached] → qualify → draft →
   verify), checkpoint results, write a report, print aggregates.
+* ``redraft`` — re-run **only** draft + verify for already-qualified companies,
+  reusing cached research **and** each record's frozen qualification verdict (the
+  qualification matrix is never recomputed). Rewrites the results file in place.
+  Use this to refresh draft/verify numbers after changing the draft or verify logic
+  without paying for research or perturbing qualification.
 * ``recheck`` — the honest, network-bounded metric: re-fetch each used claim's
   source and confirm the evidence still appears, reporting live-verifiability
   **by tier**. Run separately from ``run``.
@@ -26,6 +31,7 @@ import argparse
 import datetime
 import json
 import logging
+import os
 import re
 import time
 from pathlib import Path
@@ -36,6 +42,7 @@ from pitch_pilot.clients.search import get_search_client
 from pitch_pilot.config import ConfigError, Settings, get_settings
 from pitch_pilot.models.icp import ICP, load_icp
 from pitch_pilot.models.lead import Company
+from pitch_pilot.models.qualification import QualificationResult
 from pitch_pilot.models.research import ResearchResult
 from pitch_pilot.nodes.draft import run_draft
 from pitch_pilot.nodes.qualify import run_qualification
@@ -312,6 +319,69 @@ def run_eval(companies: list[dict], icp: ICP, *, llm, search, settings: Settings
 
 
 # ---------------------------------------------------------------------------
+# Re-run draft + verify only (qualification frozen).
+# ---------------------------------------------------------------------------
+def _qual_from_record(record: dict) -> QualificationResult:
+    """Reconstruct the frozen `QualificationResult` from an existing result record.
+
+    Only ``reason`` actually feeds drafting; the other fields are carried so the
+    object faithfully mirrors the recorded verdict. The verdict is never recomputed.
+    """
+    return QualificationResult(
+        qualified=bool(record.get("predicted_qualified")),
+        score=float(record.get("score") or 0.0),
+        reason=str(record.get("qual_reason") or ""),
+        matched_signals=list(record.get("matched_signals") or []),
+        missed_signals=list(record.get("missed_signals") or []),
+    )
+
+
+def redraft(records: list[dict], *, llm, settings: Settings) -> list[dict]:
+    """Re-run only draft + verify for already-qualified companies; return new records.
+
+    Research is loaded from cache and the qualification verdict is copied verbatim
+    from the existing record (never recomputed), so the qualification matrix is
+    untouched. Records that were disqualified, errored, or lack cached research are
+    passed through unchanged. Each redrafted record's draft/verify fields are replaced
+    with the freshly computed values.
+    """
+    out: list[dict] = []
+    for record in records:
+        if record.get("status") != "ok" or not record.get("predicted_qualified"):
+            out.append(record)
+            continue
+        domain = record.get("domain")
+        research = load_cached_research(domain)
+        if research is None:
+            logger.warning("redraft: no cached research for %s; leaving record unchanged", domain)
+            out.append(record)
+            continue
+        if hasattr(llm, "reset"):
+            llm.reset()
+        qual = _qual_from_record(record)
+        draft = run_draft(research, qual, llm, settings)
+        ver = run_verification(draft, research, llm, settings)
+        if getattr(llm, "gave_up", False):
+            logger.warning("redraft: rate-limited on %s; leaving record unchanged", domain)
+            out.append(record)
+            continue
+        updated = {
+            **record,
+            "from_cache": True,
+            "hooks_used": list(draft.hooks_used),
+            "draft_passed": ver.passed,
+            "groundedness_score": ver.groundedness_score,
+            "faithfulness_score": ver.faithfulness_score,
+            "tier_breakdown": ver.tier_breakdown,
+            "claim_verdicts": [cv.model_dump() for cv in ver.claim_verdicts],
+            "flagged_claims": ver.flagged_claims,
+        }
+        out.append(updated)
+        _print_company_line(updated)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Independent live re-check (the honest, network-bounded metric).
 # ---------------------------------------------------------------------------
 def _recheck_cache_path(run_id: str) -> Path:
@@ -483,14 +553,16 @@ def build_report(results: list[dict], agg: dict, model_label: str, run_date: str
 # CLI.
 # ---------------------------------------------------------------------------
 def _model_label(settings: Settings) -> str:
-    model = settings.gemini_model if settings.llm_provider == "gemini" else settings.groq_model
-    return f"{settings.llm_provider}/{model}"
+    return f"{settings.llm_provider}/{settings.active_model}"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="pitch-pilot eval harness.")
-    parser.add_argument("command", nargs="?", default="run", choices=["run", "recheck", "report"],
-                        help="run (default), recheck (live re-verify), or report (recompute).")
+    parser.add_argument("command", nargs="?", default="run",
+                        choices=["run", "redraft", "recheck", "report"],
+                        help="run (default), redraft (re-run draft+verify only, "
+                             "qualification frozen), recheck (live re-verify), or "
+                             "report (recompute).")
     parser.add_argument("--limit", type=int, default=None, help="Max NEW companies to process this run.")
     parser.add_argument("--resume", action="store_true", default=True,
                         help="Skip companies already evaluated (default).")
@@ -514,6 +586,26 @@ def main(argv: list[str] | None = None) -> int:
     results_file = RESULTS_DIR / f"{run_id}.jsonl"
     model_label = _model_label(settings)
     run_date = datetime.date.today().isoformat()
+
+    if args.command == "redraft":
+        records = dedupe_results(read_jsonl(results_file))
+        if not records:
+            print(f"No results at {results_file}. Run the eval first.")
+            return 1
+        max_retries = int(os.environ.get("EVAL_MAX_RETRIES", "8"))
+        base_delay = float(os.environ.get("EVAL_BASE_DELAY", "10"))
+        llm = RetryingLLM(get_llm_client(settings), max_retries=max_retries, base_delay=base_delay)
+        print(f"Redraft run '{run_id}' on {model_label} — re-running draft+verify for "
+              f"qualified companies (qualification frozen).\n")
+        updated = redraft(records, llm=llm, settings=settings)
+        results_file.parent.mkdir(parents=True, exist_ok=True)
+        with results_file.open("w", encoding="utf-8") as fh:
+            for record in updated:
+                fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+        n_qual = sum(1 for r in updated if r.get("status") == "ok" and r.get("predicted_qualified"))
+        print(f"\nRewrote {results_file} ({n_qual} qualified companies redrafted).")
+        print("Run `python -m evals.run_eval recheck` then `report` for the new numbers.")
+        return 0
 
     if args.command == "recheck":
         results = read_jsonl(results_file)
@@ -550,7 +642,11 @@ def main(argv: list[str] | None = None) -> int:
     # --- run ---
     icp = load_icp(args.icp)
     companies = load_companies(args.companies)
-    llm = RetryingLLM(get_llm_client(settings))
+    # Patient retry budget: a single call grinds through per-minute TPM limits
+    # (which reset every ~60s) instead of giving up. Tunable via env for slower tiers.
+    max_retries = int(os.environ.get("EVAL_MAX_RETRIES", "8"))
+    base_delay = float(os.environ.get("EVAL_BASE_DELAY", "10"))
+    llm = RetryingLLM(get_llm_client(settings), max_retries=max_retries, base_delay=base_delay)
     search = get_search_client(settings)
     print(f"Eval run '{run_id}' on {model_label} — {len(companies)} companies "
           f"(limit={args.limit}, resume={args.resume})\n")

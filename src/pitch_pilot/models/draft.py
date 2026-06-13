@@ -15,9 +15,11 @@ class Draft(BaseModel):
     Attributes:
         subject: The email subject line.
         body: The email body.
-        hooks_used: The angles/hooks the draft leaned on, e.g.
-            ``["recent funding", "open SDR roles"]`` — useful for review and
-            for tracing each hook back to a source.
+        hooks_used: The canonical claim text of the first-party `Fact` objects the
+            draft was grounded in — the facts the model selected by id, e.g.
+            ``["Acme raised a $20M Series B", "Acme is hiring SDRs"]``. Grounded by
+            construction (each is a real own_site/authoritative fact), so each hook
+            traces straight back to a source.
     """
 
     subject: str
