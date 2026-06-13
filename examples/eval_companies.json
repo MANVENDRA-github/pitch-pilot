@@ -1,0 +1,26 @@
+{
+  "_WARNING": "LABELS ARE PROPOSED — a human MUST verify each label and rationale against the rubric in docs/evals.md before trusting any metric computed from this set. Several entries are flagged [VERIFY].",
+  "labeling_rubric": "docs/evals.md",
+  "icp": "examples/eval_icp.json",
+  "companies": [
+    {"domain": "ramp.com", "category": "good_fit", "label": "qualified", "rationale": "Corporate spend/cards fintech with money movement and strong growth."},
+    {"domain": "brex.com", "category": "good_fit", "label": "qualified", "rationale": "Fintech corporate cards plus business banking."},
+    {"domain": "mercury.com", "category": "good_fit", "label": "qualified", "rationale": "Banking and payments for startups."},
+    {"domain": "checkout.com", "category": "good_fit", "label": "qualified", "rationale": "Payments processing infrastructure."},
+    {"domain": "plaid.com", "category": "good_fit", "label": "qualified", "rationale": "Fintech data and payments rails."},
+    {"domain": "razorpay.com", "category": "good_fit", "label": "qualified", "rationale": "Payments gateway fintech (India)."},
+    {"domain": "monzo.com", "category": "good_fit", "label": "qualified", "rationale": "Neobank, consumer payments (UK)."},
+    {"domain": "wise.com", "category": "good_fit", "label": "qualified", "rationale": "Cross-border payments. [VERIFY: large headcount, borderline on the 50-1000 size band]."},
+
+    {"domain": "notion.so", "category": "bad_fit", "label": "not_qualified", "rationale": "Productivity SaaS, no payments / money movement."},
+    {"domain": "figma.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Design tool, not fintech."},
+    {"domain": "linear.app", "category": "bad_fit", "label": "not_qualified", "rationale": "Dev project management, no money movement."},
+    {"domain": "vercel.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Developer infra / hosting, not fintech."},
+    {"domain": "huggingface.co", "category": "bad_fit", "label": "not_qualified", "rationale": "ML platform, not fintech."},
+    {"domain": "jpmorganchase.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Large incumbent bank that builds fraud in-house — matches a negative signal."},
+
+    {"domain": "nilenso.com", "category": "sparse", "label": "not_qualified", "rationale": "Small software consultancy, not fintech. [VERIFY: confirm the site is genuinely thin; swap if not]."},
+    {"domain": "fampay.in", "category": "sparse", "label": "qualified", "rationale": "Small Indian fintech — sparse good-fit edge case. [VERIFY site is actually thin]."},
+    {"domain": "jupiter.money", "category": "sparse", "label": "qualified", "rationale": "Indian neobank. [VERIFY site is actually thin]."}
+  ]
+}
