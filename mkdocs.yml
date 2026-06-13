@@ -91,6 +91,7 @@ nav:
       - Graph: components/graph.md
       - Nodes: components/nodes.md
       - Storage: components/storage.md
+      - Eval Harness: components/evals.md
   - Evaluation: evals.md
   - Project:
       - Roadmap: roadmap.md
