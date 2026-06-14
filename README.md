@@ -1,8 +1,8 @@
 # pitch-pilot
 
-**An autonomous SDR agent that turns a company domain into source-cited outreach —
-every claim is first-party-sourced and faithfulness-judged before a human sees it,
-so there's no hallucinated personalization.**
+**An SDR agent that turns a company domain into source-cited outreach — every claim
+is first-party-sourced and faithfulness-judged before a human sees it, so there's no
+hallucinated personalization.**
 
 Give it a domain and pitch-pilot researches the company, qualifies it against your
 Ideal Customer Profile, drafts outreach grounded only in cited facts, verifies every
@@ -14,54 +14,113 @@ _Last updated: 2026-06-14 · Full documentation: [`docs/`](docs/index.md)_
 ## Results
 
 > `cerebras/gpt-oss-120b`, gate-critical calls at **temperature 0**, 2026-06-14. The
-> qualifier fix ([ADR-0015](docs/decisions.md)) was developed on the original 17 and
-> validated on a **held-out** set it never saw. Every number is from
+> qualifier fix ([ADR-0015](docs/decisions.md)) was developed on the development set
+> (n=17) and validated on a held-out set it never saw. Every number is from
 > [`docs/evals.md`](docs/evals.md), the source of truth.
 
-**Held-out validation — the headline (n=8 unseen companies):**
+**Qualifier F1 0.947 on the development set (n=17), generalizing cleanly to 8 unseen
+held-out companies (4/4 qualified, 4/4 rejected).**
 
-| Stage | Metric | Result |
-| --- | --- | --- |
-| **Qualification** (n=8) | Accuracy / Precision / Recall / **F1** | 1.0 / 1.0 / 1.0 / **1.0** |
-| | Confusion — TP / FP / TN / FN | 4 / 0 / 4 / 0 |
-| **Drafting** | Draft-gate pass-rate | 0.75 (3 of 4) |
-| **Grounding** | Mean groundedness ¹ | 0.9583 |
+Primary result — qualification on the **development set (n=17)**:
 
-All eight unseen companies landed correctly — three good-fit fintechs qualified, two
-non-fintech tools and an incumbent bank disqualified, and both borderlines (coinbase,
-shopify) went the labeled way.
+| Metric (n=17) | Result |
+| --- | --- |
+| **F1** | **0.947** |
+| Accuracy / Precision / Recall | 0.941 / 1.0 / 0.90 |
+| Confusion — TP / FP / TN / FN | 9 / 0 / 7 / 1 |
+| Draft-gate pass-rate | 0.778 (7 of 9 drafted) |
+| Mean groundedness ¹ | 0.95 |
 
-**The fix's evidence — original 17, before → after** (same set, same temp-0 config,
-only the qualifier changed):
+How it got there — before → after on the same 17 (temp-0; only the qualifier changed):
 
 | Metric (n=17) | Before | After |
 | --- | --- | --- |
-| **Qualification F1** | 0.769 | **0.947** |
-| Precision / Recall | 0.625 / 1.0 | 1.0 / 0.9 |
+| **F1** | 0.769 | **0.947** |
+| Precision / Recall | 0.625 / 1.0 | 1.0 / 0.90 |
 | Confusion TP/FP/TN/FN | 10/6/1/0 | 9/0/7/1 |
 
 The fix eliminated **all six** false positives (precision 0.625 → 1.0) via a
-reliably-firing negative-signal veto plus a required-industry penalty. **Both sets
-improved, so it generalizes rather than overfitting.** The cost, stated honestly: one
-new false negative on the dev set — `ramp.com`, when the assessor flakily returned
-`industry=unknown` for a real fintech (recall 1.0 → 0.9). The held-out set did not
-show this. Full provenance, the live-re-verifiability caveat, and the draft-gate
-overreach finding are in [Evaluation](docs/evals.md).
+reliably-firing negative-signal veto plus a required-industry penalty. The cost, stated
+honestly: one new false negative — `ramp.com`, when the assessor flakily returned
+`industry=unknown` for a real fintech (recall 1.0 → 0.90).
+
+Generalization check — **held-out set (n=8)**, never seen while developing the fix:
+
+| Metric (n=8) | Result |
+| --- | --- |
+| F1 / Precision / Recall | 1.0 / 1.0 / 1.0 |
+| Confusion — TP / FP / TN / FN | 4 / 0 / 4 / 0 |
+| Draft-gate pass-rate | 0.75 (3 of 4 drafted) |
+| Mean groundedness ¹ | 0.958 |
+
+All eight unseen companies landed correctly — three good-fit fintechs and a crypto
+exchange qualified; two non-fintech tools, an incumbent bank, and a commerce platform
+rejected. F1 1.0 on eight companies is encouraging, not conclusive — a larger held-out
+set is the next step. Full provenance, the live-re-verifiability caveat, and the
+draft-gate overreach finding are in [Evaluation](docs/evals.md).
 
 ¹ Groundedness = faithful body-claims ÷ total body-claims; under the strict gate it
 equals the faithfulness score (same numerator) — one signal, not two.
 
 ## Demo
 
-Verbatim CLI output (trimmed only where marked `[...]`), same config as the tables
-above: `cerebras/gpt-oss-120b`, eval ICP (`examples/eval_icp.json`), gate-critical
-calls at temperature 0. Research is reused from cache; qualify/draft/verify run live.
-Cerebras is not bit-deterministic even at temperature 0, so each demo is one fresh
-sample.
+Verbatim CLI output (trimmed only where marked `[...]`) at the default depth —
+`cerebras/gpt-oss-120b`, `RESEARCH_MAX_QUERIES=4`, gate-critical calls at temperature 0,
+eval ICP (`examples/eval_icp.json`). Research is reused from the depth-4 eval cache
+(deterministic); qualify/draft/verify run live, and Cerebras is not bit-deterministic
+even at temperature 0, so the gate outcome is one fresh sample. (In the verification
+block, `claims by source tier` counts the facts the draft was grounded in, while
+`N/M verified` counts the body claims the judge audited — the two can differ.)
 
-_[Live demo: coming after deploy]_
+**1. A qualified lead that clears the gate — `checkout.com`:**
 
-**1. A qualified lead that clears the gate — `mercury.com`:**
+```text
+PS> python -m pitch_pilot.cli run checkout.com --icp examples/eval_icp.json
+
+Running pipeline for checkout.com (provider = cerebras, icp = examples/eval_icp.json) ...
+
+Research: 56 grounded facts from 17 sources (4 queries).
+
+== Qualification ==
+  QUALIFIED — fit score 0.62
+  Fit score 0.62 >= threshold 0.50; industry=match, size=no_match, region=match; matched 2/4 positive signal(s).
+  matched: processes online payments or transactions at scale, hiring risk, fraud, or security roles
+
+== Draft ==
+  Subject: Exploring Checkout.com’s modular payments
+
+  Hi, I’m impressed by Checkout.com’s modular approach that lets merchants use individual products such as acquiring and authentication. Modularity is clearly at the core of your payments strategy. The Unified Payments API’s single‑point integration aligns well with teams looking to streamline checkout experiences. Your built‑in fraud detection can help businesses strengthen risk strategies. Would you be open to a brief call to explore how we might complement your stack?
+
+  Grounded hooks: Checkout.com’s modular approach lets merchants use all its products, like acquiring and authentication, separately. | Modularity is at the core of Checkout.com's approach to payments. | [...]
+
+== Verification ==
+  groundedness 1.00 (4/4 verified) · faithfulness 1.00 — PASS
+  claims by source tier: own_site=4
+    - tier=own_site substring_ok=yes faithfulness=faithful
+      claim: Checkout.com’s modular approach lets merchants use individual products such as acquiring and authentication.
+      source: https://www.checkout.com/blog/modular-payments
+    - tier=own_site substring_ok=yes faithfulness=faithful
+      claim: Modularity is clearly at the core of your payments strategy.
+      source: https://www.checkout.com/blog/modular-payments
+    - tier=own_site substring_ok=yes faithfulness=faithful
+      claim: The Unified Payments API’s single‑point integration aligns well with teams looking to streamline checkout experiences.
+      source: https://checkout.com
+    [... 1 more faithful own_site claim ...]
+
+== Logged ==
+  outcome: ready
+  written to: pitch_pilot_store.jsonl
+  (pitch-pilot never auto-sends — a human approves before anything goes out.)
+```
+
+**2. The groundedness gate rejecting a bad claim — `mercury.com`:**
+
+Mercury qualifies, and four of its draft's claims check out — but it combines two real
+capabilities ("AI‑driven tools" and "instant card issuance") into a benefit the cited
+facts never state: that together they "reduce time spent on money management." The judge
+rates that claim `overreach`, the draft **fails**, and the lead is routed to human
+review instead of `ready` — the gate catching exactly the kind of over-claim it is built
+for.
 
 ```text
 PS> python -m pitch_pilot.cli run mercury.com --icp examples/eval_icp.json
@@ -76,70 +135,27 @@ Research: 64 grounded facts from 17 sources (4 queries).
   matched: processes online payments or transactions at scale, recently raised growth funding
 
 == Draft ==
-  Subject: Helping Mercury streamline global payments and cash management
+  Subject: A quick thought on Mercury’s finance stack
 
-  I noticed Mercury’s fintech platform offers free checking and savings accounts with zero minimums and up to 3.60% yield, which is a great foundation for growing businesses. Your payments product lets users send money worldwide with no fees on USD payments, and the instant issuance of cards gives teams immediate control over spend. Since Mercury helps manage business finances at every stage of growth, I think our integrated finance‑automation solution could further reduce manual effort and enhance your existing tools.
+  I noticed Mercury provides free checking and savings accounts with zero minimums and competitive yields, plus fee‑free worldwide USD payments. With those capabilities, a tightly integrated finance stack can further automate background tasks and surface the insights your team needs. I’d love to share how our solution can complement Mercury’s AI‑driven tools and instant card issuance to reduce time spent on money management.
 
   Grounded hooks: Mercury offers free checking and savings accounts with zero minimums and up to 3.60% yield through Treasury by Mercury Advisory. | Mercury payments allow sending money worldwide with no fees on USD payments. | [...]
 
 == Verification ==
-  groundedness 1.00 (4/4 verified) · faithfulness 1.00 — PASS
+  groundedness 0.80 (4/5 verified) · faithfulness 0.80 — FAIL
   claims by source tier: own_site=5
     - tier=own_site substring_ok=yes faithfulness=faithful
-      claim: Mercury’s fintech platform offers free checking and savings accounts with zero minimums and up to 3.60% yield
+      claim: Mercury provides free checking and savings accounts with zero minimums and competitive yields
       source: https://mercury.com
     - tier=own_site substring_ok=yes faithfulness=faithful
-      claim: Mercury’s payments product lets users send money worldwide with no fees on USD payments
+      claim: Mercury provides fee‑free worldwide USD payments
       source: https://mercury.com
     [... 2 more faithful own_site claims ...]
-
-== Logged ==
-  outcome: ready
-  written to: pitch_pilot_store.jsonl
-  (pitch-pilot never auto-sends — a human approves before anything goes out.)
-```
-
-**2. The groundedness gate rejecting a bad claim — `wise.com`:**
-
-Wise qualifies cleanly, but its draft turned the fact "In Q4, 65% of transfers **were**
-instant" into "65% of transfers **now** complete in under 20 seconds" — dropping the
-"Q4" qualifier and present-tensing a past-quarter stat. The judge rated that claim
-`overreach`, the draft **failed**, and the lead was routed to human review instead of
-`ready` — the gate catching exactly the kind of subtle over-claim it is built for.
-
-```text
-PS> python -m pitch_pilot.cli run wise.com --icp examples/eval_icp.json
-
-Running pipeline for wise.com (provider = cerebras, icp = examples/eval_icp.json) ...
-
-Research: 65 grounded facts from 17 sources (4 queries).
-
-== Qualification ==
-  QUALIFIED — fit score 0.83
-  Fit score 0.83 >= threshold 0.50; industry=match, size=unknown, region=match; matched 2/4 positive signal(s).
-  matched: processes online payments or transactions at scale, regulatory or compliance exposure
-
-== Draft ==
-  Subject: Supporting Wise’s fast, low‑cost international payments
-
-  I’ve been impressed by Wise’s personal international account that lets users send, spend and convert money as if they were local. The claim that customers can save up to 45% on global transfers really stands out. I also saw that 65% of transfers now complete in under 20 seconds, showing how fast your service is. I’d love to explore how we could support that momentum.
-
-  Grounded hooks: Wise offers a personal international account for sending, spending and converting money like a local. | Wise claims users can save up to 45% when sending money globally. | [...]
-
-== Verification ==
-  groundedness 0.67 (2/3 verified) · faithfulness 0.67 — FAIL
-  claims by source tier: own_site=3
-    - tier=own_site substring_ok=yes faithfulness=faithful
-      claim: Wise has a personal international account that lets users send, spend and convert money as if they were local.
-      source: https://wise.com
-    - tier=own_site substring_ok=yes faithfulness=faithful
-      claim: Customers can save up to 45% on global transfers.
-      source: https://wise.com
     - tier=own_site substring_ok=yes faithfulness=overreach
-      claim: 65% of transfers now complete in under 20 seconds.
-      source: https://wise.com/gb/blog/q4-2024-mission-update-speed
+      claim: Mercury’s AI‑driven tools and instant card issuance reduce time spent on money management
+      source: https://mercury.com/releases
   failures:
-    ❌ overreach: 65% of transfers now complete in under 20 seconds.
+    ❌ overreach: Mercury’s AI‑driven tools and instant card issuance reduce time spent on money management
 
 == Logged ==
   outcome: review
@@ -210,7 +226,7 @@ Deliberate scope, stated plainly:
 
 - **Small samples.** Held-out n=8, development n=17, human-proposed labels, a single
   run each. F1 1.0 on eight companies is encouraging, not conclusive — a larger
-  held-out set is the next step before the headline is bankable.
+  held-out set is the next step before the generalization claim is bankable.
 - **One residual qualification miss + run-to-run variance.** Making `industry=unknown`
   count against a company (the fix) costs recall when the assessor *flakily* fails to
   confirm a real fintech's industry — it cost one false negative (`ramp.com`) on the
