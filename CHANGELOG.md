@@ -10,6 +10,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _Nothing yet — P5 (storage and review app: production `Store` backends and a
 human-review UI over the queue) is next._
 
+## [0.9.0] — 2026-06-14
+
+**Qualifier fix + held-out validation.** The temperature-0 re-baseline exposed six
+qualification false positives (F1 0.769); a diagnostic traced them to an under-firing
+negative-signal veto and `industry=unknown` being dropped from the score (see
+ADR-0015).
+
+### Changed
+
+- **`nodes/qualify.py` — reliable negative-signal veto.** The assessor prompt now
+  judges NEGATIVE signals from the company's described business (so a negation like
+  "not fintech" fires when the facts show design tools / dev infra / ML hosting,
+  instead of defaulting to `unknown`). Structural attributes and positive signals
+  still follow "don't guess → unknown".
+- **`nodes/qualify.py` — industry is a required component.** When the ICP names target
+  industries, an `unknown` or `no_match` industry scores 0.0 and stays in the
+  denominator (instead of being dropped), so a fintech ICP can't qualify a company it
+  can't place in-industry. Size/region unknowns are still dropped.
+
+### Added
+
+- **`examples/eval_companies_holdout.json`** — an 8-company held-out validation set
+  (clear good-fit, clear bad-fit incl. an incumbent bank, two borderline) to test
+  whether qualifier changes generalize vs. overfit.
+
+### Eval (cerebras/gpt-oss-120b, temperature 0, 2026-06-14)
+
+- **Held-out (n=8, headline): F1 1.0** (TP=4, FP=0, TN=4, FN=0) — every unseen company
+  correct, including an incumbent bank and two borderlines.
+- **Original 17 (development): F1 0.769 → 0.947** — all six false positives eliminated
+  (precision 0.625 → 1.0). Both sets improved, so the fix generalizes.
+- **Trade-off, flagged:** one new false negative on the dev set (`ramp.com`, flaky
+  `industry=unknown` on a real fintech; recall 1.0 → 0.9). Draft-gate overreach
+  (drafter over-claiming, caught by the gate) noted as a separate finding. See
+  `docs/evals.md`.
+
 ## [0.8.0] — 2026-06-14
 
 **Draft grounding decoupled from phrasing.** The first full Cerebras eval revealed
@@ -39,6 +75,13 @@ ADR-0014).
   claims (with the supporting fact cited by id); `tier_breakdown` counts the grounding
   hooks by tier; failure reasons shrink to `unsupported` / `overreach` / `structural`
   / `judge-error`.
+- **No fact-id leakage in drafts** — the draft prompt forbids fact ids in the
+  subject/body, with a regex backstop (`_strip_fact_ids`) that removes any leaked
+  `(Fact N)` token (the ids are for the `facts_used` field only).
+- **Deterministic gate-critical calls** — `LLMClient.complete` / `complete_json` take
+  an optional `temperature` (sent only when set; provider default otherwise), and the
+  **qualify, draft, and verify-judge** calls pass `temperature=0` so the headline
+  numbers are a reproducible run, not a lucky sample.
 
 ### Added
 
@@ -46,13 +89,20 @@ ADR-0014).
   already-qualified companies, reusing cached research **and** each record's frozen
   qualification verdict (the qualification matrix is never recomputed).
 
-### Eval (cerebras/gpt-oss-120b, 2026-06-14)
+### Eval — canonical temperature-0 re-baseline (cerebras/gpt-oss-120b, 2026-06-14, n=17)
 
-- Qualification **unchanged** (frozen): TP=10, FP=3, TN=4, FN=0; F1 **0.870**.
-- Draft-gate pass-rate **11/13 = 0.846**, mean groundedness **0.936**, mean
-  faithfulness **0.936**, own_site live re-verifiability **0.90 (45/50)**. See
-  `docs/evals.md` (with a documented Known Limitations section on the three
-  qualification false positives — the industry-gating fix is deferred future work).
+One clean full run with qualify/draft/verify at temperature 0 (research reused from
+cache). Replaces the earlier mixed table; this run is canonical.
+
+- Qualification: TP=10, FP=6, TN=1, FN=0 → **F1 0.769** (precision 0.625, recall 1.0,
+  accuracy 0.647).
+- Draft-gate pass-rate **9/16 = 0.5625**, mean groundedness/faithfulness **0.8615**,
+  own_site live re-verifiability **0.9032 (56/62)**.
+- Reproducibility honesty: an earlier *non-deterministic* run scored F1 0.870; at
+  temperature 0 the negative-signal veto under-fires consistently (figma/huggingface/
+  jpmorganchase become false positives), so the reproducible number is lower. See
+  `docs/evals.md` for the full Known Limitations (six FPs; veto-hardening /
+  industry-gating fix deferred to a held-out set; residual temp-0 variance).
 
 ## [0.7.0] — 2026-06-13
 
