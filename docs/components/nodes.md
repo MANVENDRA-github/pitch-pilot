@@ -67,11 +67,11 @@ the control flow is not a fixed query list. One run proceeds as:
    result, run the extractor on its content (the result URL is the source).
 5. **Reflect.** De-duplicate by claim, accumulate facts, record the query, loop.
 
-**Research depth is tunable and leaned out by default** (cheaper, faster, and
-fits free-tier token caps — see [ADR-0012](../decisions.md)):
-`RESEARCH_MAX_QUERIES` (3), `RESEARCH_MAX_PAGE_CHARS` (3500 — the biggest token
-lever), and `RESEARCH_MAX_FACTS_PER_SOURCE` (5) are [`Settings`](../configuration.md)
-that `run_research` passes through to the extractor. `RESEARCH_DIMENSIONS` and
+**Research depth is tunable and lean by default** (cheaper, faster, and fits
+free-tier token caps — see [ADR-0012](../decisions.md)): `RESEARCH_MAX_QUERIES` (4 —
+the depth the eval and demos use on Cerebras), `RESEARCH_MAX_PAGE_CHARS` (3500 — the
+biggest token lever), and `RESEARCH_MAX_FACTS_PER_SOURCE` (5) are
+[`Settings`](../configuration.md) that `run_research` passes through to the extractor. `RESEARCH_DIMENSIONS` and
 `SEARCH_RESULTS_PER_QUERY` remain module constants; `MAX_TEXT_CHARS` /
 `MAX_FACTS_PER_SOURCE` survive only as lean fallback defaults for direct
 `extract_facts` calls.
