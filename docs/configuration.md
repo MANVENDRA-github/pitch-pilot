@@ -50,7 +50,7 @@ One row per field defined in `config.py`:
 | `GEMINI_MODEL` | No | `gemini-2.5-flash-lite` | Gemini model id. |
 | `GROQ_MODEL` | No | `llama-3.1-8b-instant` | Groq model id. |
 | `CEREBRAS_MODEL` | No | `gpt-oss-120b` | Cerebras model id. Available models vary by account/tier — check the provider's `models.list()`. |
-| `RESEARCH_MAX_QUERIES` | No | `3` | Max search queries per research run. |
+| `RESEARCH_MAX_QUERIES` | No | `4` | Max search queries per research run. The depth the eval tables and demos use on Cerebras; the earlier lean default of 3 was a Groq-quota value never shipped (ADR-0012). |
 | `RESEARCH_MAX_PAGE_CHARS` | No | `3500` | Max characters of each source's text fed to the extractor. The biggest token lever; truncation preserves the evidence-substring check (ADR-0012). |
 | `RESEARCH_MAX_FACTS_PER_SOURCE` | No | `5` | Max facts extracted from a single source, so one page can't dominate. |
 | `QUALIFY_THRESHOLD` | No | `0.5` | Minimum fit score for a company to qualify against the ICP. A matched negative signal vetoes qualification regardless. |
@@ -99,7 +99,7 @@ GROQ_MODEL=llama-3.1-8b-instant
 CEREBRAS_MODEL=gpt-oss-120b
 
 # --- Research / qualification / grounding tunables ---
-RESEARCH_MAX_QUERIES=3
+RESEARCH_MAX_QUERIES=4
 RESEARCH_MAX_PAGE_CHARS=3500
 RESEARCH_MAX_FACTS_PER_SOURCE=5
 QUALIFY_THRESHOLD=0.5
