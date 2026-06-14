@@ -117,17 +117,23 @@ and a summary line (facts, distinct sources, and the LLM-chosen queries that ran
 - The **LLM assesses**, for each ICP attribute (industry, region, employee count)
   and each positive/negative signal, whether the facts support it —
   `match` / `no_match` / `unknown`, citing the supporting fact. It does *not* decide
-  qualification.
+  qualification. Negative signals are judged from the company's described business
+  (so a negation like "not fintech" fires when the facts show design tools / dev infra
+  / ML hosting, rather than defaulting to `unknown` — [ADR-0015](../decisions.md)).
 - **Deterministic code scores.** A weighted blend of industry / size / region /
-  positive-signals yields a fit score in `[0, 1]`; *unknown* structural components
-  are dropped and the weights renormalized, so a research gap never penalizes.
-  Positive signals score as `matched / total`.
+  positive-signals yields a fit score in `[0, 1]`. *Size/region* unknowns are dropped
+  and the weights renormalized (a research gap there shouldn't penalize), but
+  **industry is required when the ICP names target industries**: an `unknown` or
+  `no_match` industry scores 0.0 and stays in the denominator, so a fintech ICP can't
+  qualify a company it can't place in-industry. Positive signals score as
+  `matched / total`.
 - **A matched negative signal is a hard veto** — it forces `qualified = False`
   regardless of score.
 - The company qualifies iff `score >= QUALIFY_THRESHOLD` and nothing vetoed.
 
 Unknowns are never guessed: an unknown signal appears in neither `matched_signals`
-nor `missed_signals`.
+nor `missed_signals`. The assessment call runs at `temperature=0` so the verdict (and
+the headline F1) is reproducible.
 
 ## The draft node (Policy B since P3; selection since 0.8.0)
 
@@ -145,6 +151,11 @@ and [ADR-0014](../decisions.md)):
   in. `hooks_used` is the canonical claim text of those facts — a subset of the
   first-party research facts, grounded **by construction**. The draft layer does
   **not** substring- or fuzzy-match hook text against the source.
+- **No id leakage in the prose.** The fact ids are a selection mechanism for
+  `facts_used` only; the prompt forbids them in the subject/body, and a regex
+  backstop (`_strip_fact_ids`) removes any `(Fact N)`-style token that slips through.
+- **Deterministic drafting.** The draft call runs at `temperature=0` for reproducible
+  output.
 
 ## The verify node (P3 hardening; 0.8.0 body-faithfulness)
 
@@ -154,10 +165,11 @@ draft in two parts (see the [Groundedness methodology](../groundedness.md)):
 1. **Structural — the grounding facts.** Each `hook_used` is re-resolved to a
    first-party `Fact`; any that fails to resolve is a `structural` failure (an
    invariant violation — hooks are first-party by construction).
-2. **Faithfulness — the body.** One LLM judge (`judge_body`) reads the draft **body**
-   and the selected facts, extracts every factual claim the body makes about the
-   company, and rates each `faithful` / `overreach` / `unsupported`. The judge fails
-   closed (any error or malformed response fails the draft).
+2. **Faithfulness — the body.** One LLM judge (`judge_body`, run at `temperature=0`)
+   reads the draft **body** and the selected facts, extracts every factual claim the
+   body makes about the company, and rates each `faithful` / `overreach` /
+   `unsupported`. The judge fails closed (any error or malformed response fails the
+   draft).
 
 The draft **passes** iff it has a grounded hook, a non-empty body, the judge ran,
 and no body claim is `unsupported` (and none is `overreach` under
