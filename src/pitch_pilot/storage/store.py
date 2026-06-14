@@ -63,7 +63,6 @@ class JsonStore:
     @staticmethod
     def _append(path: Path, lead: Lead) -> None:
         """Serialize ``lead`` to JSON and append it as a line to ``path``."""
-        if path.parent != Path(""):
-            path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as fh:
             fh.write(lead.model_dump_json() + "\n")
