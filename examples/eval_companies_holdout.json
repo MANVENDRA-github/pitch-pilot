@@ -1,0 +1,17 @@
+{
+  "_WARNING": "HELD-OUT validation set — companies NOT in examples/eval_companies.json. Labels are proposed against the rubric in docs/evals.md and must be human-verified before trusting any metric. This set is the clean test of whether the qualifier fix (ADR-0015) generalizes vs. overfits the original 17.",
+  "labeling_rubric": "docs/evals.md",
+  "icp": "examples/eval_icp.json",
+  "companies": [
+    {"domain": "stripe.com", "category": "good_fit", "label": "qualified", "rationale": "Payments infrastructure; canonical fintech with money movement at scale."},
+    {"domain": "gocardless.com", "category": "good_fit", "label": "qualified", "rationale": "Bank-debit / recurring-payments fintech (UK), in the 50-1000 band."},
+    {"domain": "chime.com", "category": "good_fit", "label": "qualified", "rationale": "US neobank — consumer banking and payments."},
+
+    {"domain": "canva.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Design platform, not fintech / no money movement (parallels figma)."},
+    {"domain": "datadoghq.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Observability / developer infrastructure, not fintech."},
+    {"domain": "wellsfargo.com", "category": "bad_fit", "label": "not_qualified", "rationale": "Large incumbent bank that builds fraud in-house — matches a negative signal."},
+
+    {"domain": "coinbase.com", "category": "borderline", "label": "qualified", "rationale": "Crypto exchange — explicitly in the ICP industries, money movement + heavy regulatory exposure. Borderline only on size (headcount over the 1000 band); should still qualify on industry + signals."},
+    {"domain": "shopify.com", "category": "borderline", "label": "not_qualified", "rationale": "Primarily an e-commerce SaaS platform (has Shopify Payments, so it does move money) but not a fintech company; well outside the size band. Borderline call — leaning not_qualified as a commerce, not fintech, business."}
+  ]
+}
