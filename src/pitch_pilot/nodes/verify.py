@@ -50,6 +50,9 @@ logger = logging.getLogger(__name__)
 _FIRST_PARTY_TIERS = {"own_site", "authoritative"}
 _TIER_RANK = {"own_site": 0, "authoritative": 1}
 
+# Gate-critical call: judge deterministically so a draft's verdict is reproducible.
+_JUDGE_TEMPERATURE = 0.0
+
 _FAITHFULNESS_SYSTEM = (
     "You are a strict groundedness judge for an SDR agent. You are given the BODY of "
     "a cold outreach email and a NUMBERED list of FACTS (each copied from a source, "
@@ -107,7 +110,7 @@ def judge_body(body: str, selected: list[Fact], llm: LLMClient) -> tuple[bool, l
     )
     user = f"BODY:\n{body}\n\nFACTS:\n{facts_block}"
     try:
-        payload = llm.complete_json(_FAITHFULNESS_SYSTEM, user)
+        payload = llm.complete_json(_FAITHFULNESS_SYSTEM, user, temperature=_JUDGE_TEMPERATURE)
     except LLMError as exc:
         logger.warning("body faithfulness judge failed: %s", exc)
         return False, []
