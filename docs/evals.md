@@ -64,6 +64,9 @@ records *why the company is in the set* (and drives the degradation metric), whi
 
 The harness (`evals/run_eval.py`) is built for free-tier reality:
 
+- **Research depth = 4.** Every run uses `RESEARCH_MAX_QUERIES=4` — now the shipped
+  default, so the eval, the default config, and the README demos all measure the same
+  depth (see [ADR-0012](decisions.md)).
 - **Cache** — research (the expensive ~22-of-~30 LLM calls) is cached per domain in
   `evals/cache/`; it is never recomputed.
 - **Checkpoint + resume** — each company's result is appended to
