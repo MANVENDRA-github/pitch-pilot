@@ -69,12 +69,19 @@ class LLMJSONError(LLMError):
 class LLMClient(Protocol):
     """The provider-neutral LLM interface the pipeline depends on."""
 
-    def complete(self, system: str, user: str) -> str:
-        """Return a free-text completion for the given system + user prompts."""
+    def complete(self, system: str, user: str, temperature: float | None = None) -> str:
+        """Return a free-text completion for the given system + user prompts.
+
+        ``temperature`` overrides the provider default when set; gate-critical calls
+        (draft, verify judge) pass ``0.0`` for reproducibility.
+        """
         ...
 
-    def complete_json(self, system: str, user: str) -> dict:
-        """Return a parsed JSON object. Raises `LLMJSONError` on bad JSON."""
+    def complete_json(self, system: str, user: str, temperature: float | None = None) -> dict:
+        """Return a parsed JSON object. Raises `LLMJSONError` on bad JSON.
+
+        ``temperature`` overrides the provider default when set (see `complete`).
+        """
         ...
 
 
@@ -180,12 +187,13 @@ class GeminiClient:
             self._client = genai.Client(api_key=self._api_key)
         return self._client
 
-    def complete(self, system: str, user: str) -> str:
+    def complete(self, system: str, user: str, temperature: float | None = None) -> str:
         """Return a free-text completion.
 
         Args:
             system: System instruction (role/behavior).
             user: User prompt (the request).
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The model's text response, stripped of surrounding whitespace.
@@ -196,17 +204,20 @@ class GeminiClient:
         from google.genai import types
 
         client = self._ensure_client()
+        config_kwargs: dict = {"system_instruction": system}
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
         try:
             response = client.models.generate_content(
                 model=self._model,
                 contents=user,
-                config=types.GenerateContentConfig(system_instruction=system),
+                config=types.GenerateContentConfig(**config_kwargs),
             )
         except Exception as exc:  # normalize vendor SDK errors to LLMError
             raise LLMError(f"Gemini request failed: {exc}") from exc
         return (response.text or "").strip()
 
-    def complete_json(self, system: str, user: str) -> dict:
+    def complete_json(self, system: str, user: str, temperature: float | None = None) -> dict:
         """Return a parsed JSON object using Gemini's JSON output mode.
 
         Sets ``response_mime_type="application/json"`` and parses the result
@@ -215,6 +226,7 @@ class GeminiClient:
         Args:
             system: System instruction.
             user: User prompt.
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The parsed JSON object.
@@ -226,14 +238,17 @@ class GeminiClient:
         from google.genai import types
 
         client = self._ensure_client()
+        config_kwargs: dict = {
+            "system_instruction": _json_system(system),
+            "response_mime_type": "application/json",
+        }
+        if temperature is not None:
+            config_kwargs["temperature"] = temperature
         try:
             response = client.models.generate_content(
                 model=self._model,
                 contents=user,
-                config=types.GenerateContentConfig(
-                    system_instruction=_json_system(system),
-                    response_mime_type="application/json",
-                ),
+                config=types.GenerateContentConfig(**config_kwargs),
             )
         except Exception as exc:  # normalize vendor SDK errors to LLMError
             raise LLMError(f"Gemini request failed: {exc}") from exc
@@ -262,12 +277,13 @@ class GroqClient:
             self._client = Groq(api_key=self._api_key)
         return self._client
 
-    def complete(self, system: str, user: str) -> str:
+    def complete(self, system: str, user: str, temperature: float | None = None) -> str:
         """Return a free-text completion.
 
         Args:
             system: System message (role/behavior).
             user: User message (the request).
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The model's text response, stripped of surrounding whitespace.
@@ -276,19 +292,22 @@ class GroqClient:
             LLMError: if the provider request fails.
         """
         client = self._ensure_client()
+        kwargs: dict = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         try:
-            response = client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            )
+            response = client.chat.completions.create(**kwargs)
         except Exception as exc:  # normalize vendor SDK errors to LLMError
             raise LLMError(f"Groq request failed: {exc}") from exc
         return (response.choices[0].message.content or "").strip()
 
-    def complete_json(self, system: str, user: str) -> dict:
+    def complete_json(self, system: str, user: str, temperature: float | None = None) -> dict:
         """Return a parsed JSON object using Groq's JSON mode.
 
         Uses ``response_format={"type": "json_object"}`` and injects an explicit
@@ -297,6 +316,7 @@ class GroqClient:
         Args:
             system: System message.
             user: User message.
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The parsed JSON object.
@@ -306,15 +326,18 @@ class GroqClient:
             LLMJSONError: if the response is not a valid JSON object.
         """
         client = self._ensure_client()
+        kwargs: dict = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": _json_system(system)},
+                {"role": "user", "content": user},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         try:
-            response = client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": _json_system(system)},
-                    {"role": "user", "content": user},
-                ],
-                response_format={"type": "json_object"},
-            )
+            response = client.chat.completions.create(**kwargs)
         except Exception as exc:  # normalize vendor SDK errors (e.g. json_validate_failed) to LLMError
             raise LLMError(f"Groq request failed: {exc}") from exc
         return _loads_json_lenient(response.choices[0].message.content or "")
@@ -350,12 +373,13 @@ class CerebrasClient:
             self._client = Cerebras(api_key=self._api_key)
         return self._client
 
-    def complete(self, system: str, user: str) -> str:
+    def complete(self, system: str, user: str, temperature: float | None = None) -> str:
         """Return a free-text completion.
 
         Args:
             system: System message (role/behavior).
             user: User message (the request).
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The model's text response, stripped of surrounding whitespace.
@@ -364,19 +388,22 @@ class CerebrasClient:
             LLMError: if the provider request fails.
         """
         client = self._ensure_client()
+        kwargs: dict = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         try:
-            response = client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            )
+            response = client.chat.completions.create(**kwargs)
         except Exception as exc:  # normalize vendor SDK errors to LLMError
             raise LLMError(f"Cerebras request failed: {exc}") from exc
         return (response.choices[0].message.content or "").strip()
 
-    def complete_json(self, system: str, user: str) -> dict:
+    def complete_json(self, system: str, user: str, temperature: float | None = None) -> dict:
         """Return a parsed JSON object using Cerebras's JSON mode.
 
         Uses ``response_format={"type": "json_object"}`` and injects an explicit
@@ -385,6 +412,7 @@ class CerebrasClient:
         Args:
             system: System message.
             user: User message.
+            temperature: Sampling temperature; the provider default when ``None``.
 
         Returns:
             The parsed JSON object.
@@ -394,15 +422,18 @@ class CerebrasClient:
             LLMJSONError: if the response is not a valid JSON object.
         """
         client = self._ensure_client()
+        kwargs: dict = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": _json_system(system)},
+                {"role": "user", "content": user},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         try:
-            response = client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": _json_system(system)},
-                    {"role": "user", "content": user},
-                ],
-                response_format={"type": "json_object"},
-            )
+            response = client.chat.completions.create(**kwargs)
         except Exception as exc:  # normalize vendor SDK errors to LLMError
             raise LLMError(f"Cerebras request failed: {exc}") from exc
         return _loads_json_lenient(response.choices[0].message.content or "")
