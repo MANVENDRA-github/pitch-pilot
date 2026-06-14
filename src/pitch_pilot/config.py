@@ -42,7 +42,9 @@ class Settings(BaseSettings):
         groq_model: Groq model id (default ``llama-3.1-8b-instant``).
         cerebras_model: Cerebras model id (default ``gpt-oss-120b``; available models
             vary by account/tier — check the provider's ``models.list()``).
-        research_max_queries: Max search queries per research run (``>= 1``, default 3).
+        research_max_queries: Max search queries per research run (``>= 1``, default 4 —
+            see ADR-0012; the earlier lean default of 3 was a Groq-quota choice never
+            shipped, and the eval and demos run at 4 on Cerebras).
         research_max_page_chars: Max characters of each fetched page / search-result
             content fed to the extractor (``>= 500``, default 3500). The biggest
             token lever — truncating the source text keeps cost and latency (and
@@ -91,7 +93,7 @@ class Settings(BaseSettings):
 
     # --- Tunables ---
     research_max_queries: int = Field(
-        default=3, ge=1, description="Max number of search queries per research run."
+        default=4, ge=1, description="Max number of search queries per research run."
     )
     research_max_page_chars: int = Field(
         default=3500, ge=500,
