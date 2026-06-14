@@ -30,6 +30,11 @@ Two files under `examples/`:
       jpmorganchase (incumbent-bank negative signal).
     - **sparse:** nilenso → not_qualified; fampay, jupiter.money → qualified
       (sparse good-fit edge cases) `[VERIFY thin]`.
+- **`eval_companies_holdout.json`** — a **held-out** validation set of 8 companies
+  **not** in the file above (stripe, gocardless, chime, canva, datadoghq, wellsfargo,
+  coinbase, shopify): clear good-fit, clear bad-fit (non-fintech + an incumbent bank),
+  and two borderline. It is the clean test of whether a qualifier change generalizes
+  rather than overfitting the development 17.
 
 ## Labeling rubric
 
@@ -75,6 +80,12 @@ logic can change without paying for research or perturbing the qualification mat
 See [ADR-0011](decisions.md), [ADR-0014](decisions.md), and the
 [eval harness component](components/evals.md).
 
+**Reproducibility.** The three gate-critical LLM calls — qualify, draft, and the
+verify faithfulness judge — run at **temperature 0** so the headline numbers are a
+reproducible run, not a lucky sample. (Cerebras is not bit-deterministic even at
+temperature 0, so a small residual run-to-run variance remains; the table below is
+one canonical run, reported as such.)
+
 ### Metrics
 
 | Metric | Definition |
@@ -94,6 +105,11 @@ python -m evals.run_eval --limit 3       # evaluate (cached, checkpointed, resum
 python -m evals.run_eval redraft         # re-run draft+verify only (qualification frozen)
 python -m evals.run_eval recheck         # live re-verifiability by tier (network-bounded)
 python -m evals.run_eval report          # recompute metrics + rewrite the report
+
+# Held-out validation (live research for the 8 unseen companies):
+python -m evals.run_eval run --companies examples/eval_companies_holdout.json --run-id holdout
+python -m evals.run_eval recheck --run-id holdout
+python -m evals.run_eval report  --run-id holdout
 ```
 
 Use a capable model — the 8B model malforms the structured JSON. The headline run
@@ -103,64 +119,101 @@ or Gemini also work. Each run writes a dated report to `evals/reports/eval-<date
 
 ## Current numbers
 
-Full run over all **17 companies** (good_fit, bad_fit, and sparse — positives,
-negatives, and thin cases) on **`cerebras/gpt-oss-120b`**, **2026-06-14**. The
-draft + verify numbers are from the 0.8.0 structural fix (draft grounding =
-fact-selection; verify = body-faithfulness judge — see
-[ADR-0014](decisions.md) and [Groundedness](groundedness.md)). The qualification
-matrix is unchanged from the original run; only draft + verify were re-run (via
-`redraft`), so qualification is frozen and the draft/verify numbers are real and
-comparable.
+All runs `cerebras/gpt-oss-120b`, gate-critical calls (qualify, draft, verify judge)
+at **temperature 0**, **2026-06-14**. The qualifier fix (reliable negative-signal
+veto + industry as a required component — [ADR-0015](decisions.md)) was developed
+against the original 17 and then validated on a **held-out** set it never saw.
 
-| Metric | Target | Latest | Model | As of |
-| --- | --- | --- | --- | --- |
-| Qualification F1 | ≥ 0.80 | **0.870** (precision 0.769, recall 1.0, accuracy 0.824) | cerebras/gpt-oss-120b | 2026-06-14 |
-| Draft gate pass-rate | report-only | **0.846 (11/13)** | cerebras/gpt-oss-120b | 2026-06-14 |
-| Mean groundedness | ≥ 0.90 | **0.936** | cerebras/gpt-oss-120b | 2026-06-14 |
-| Mean faithfulness | ≥ 0.90 | **0.936** | cerebras/gpt-oss-120b | 2026-06-14 |
-| Failure modes (gate caught) | report-only | `unsupported: 1`, `overreach: 2` | cerebras/gpt-oss-120b | 2026-06-14 |
-| Live re-verifiability (own_site) | report-only | **0.90 (45/50)** | cerebras/gpt-oss-120b | 2026-06-14 |
-| Facts/company (good_fit / bad_fit / sparse) | report-only | 61.75 / 54.5 / 50.33 | cerebras/gpt-oss-120b | 2026-06-14 |
+### Headline — held-out validation (n=8, clean test of generalization)
 
-**Qualification confusion matrix** (n=17): TP=10, FP=3, TN=4, FN=0 →
-precision 10/13 = 0.769, recall 10/10 = 1.0, F1 0.870, accuracy 14/17 = 0.824.
+Eight **new** companies (not in the original 17): clear good-fit fintechs, clear
+bad-fit (non-fintech + an incumbent bank), and two borderline. See
+`examples/eval_companies_holdout.json`.
 
-**What the draft gate caught.** Of 13 qualified companies, 11 produced a passing
-draft. The 2 failures are both qualification **false positives**, and the gate
-flagged them for the right reason:
+| Metric | Result | Model | As of |
+| --- | --- | --- | --- |
+| **Qualification F1** | **1.0** (precision 1.0, recall 1.0, accuracy 1.0; TP=4, FP=0, TN=4, FN=0) | cerebras/gpt-oss-120b | 2026-06-14 |
+| Draft gate pass-rate | 0.75 (3/4) | cerebras/gpt-oss-120b | 2026-06-14 |
+| Mean groundedness / faithfulness | 0.9583 (over 4 drafts) | cerebras/gpt-oss-120b | 2026-06-14 |
+| Live re-verifiability (own_site) | 0.40 (8/20) — see caveat | cerebras/gpt-oss-120b | 2026-06-14 |
 
-- `linear.app` — groundedness 0.667; one body claim flagged `overreach`
-  ("Linear has distributed, remote-first teams").
-- `vercel.com` — groundedness 0.5; one `overreach` and one `unsupported`
-  ("strong foundation for fast, secure AI-native apps").
+Every held-out company landed correctly: `stripe` / `gocardless` / `chime` qualified;
+`canva` / `datadoghq` (non-fintech) and `wellsfargo` (incumbent bank) disqualified;
+and both borderlines went the labeled way — `coinbase` (crypto exchange, in-ICP)
+qualified at 0.69, `shopify` (commerce, not fintech) disqualified at 0.37. The veto
+and industry rule generalize to companies the fix was never tuned on.
 
-Every grounding fact used across all drafts was `own_site` tier (Policy B holds),
-and 90% (45/50) of those sources still carried their evidence verbatim on live
-re-fetch. The full dated report is at `evals/reports/eval-2026-06-14.md`.
+> **Held-out re-verifiability caveat.** The 0.40 (8/20) looks alarming but is a
+> **fetch-access** artifact, not fabrication: 10 of the 12 misses are `dead` — the
+> source returned HTTP 403 (bot-blocking) on re-fetch (chime, canva, coinbase block
+> automated fetchers), so the evidence couldn't be re-checked at all. Only 2 were
+> genuinely absent. The original-17 sources (well-known, fetchable) give the cleaner
+> durability signal of **0.9231 (36/39)** below.
+
+### Fix evidence — original 17, before vs. after (development set)
+
+Same set, same temperature-0 config; only the qualifier changed.
+
+| Metric (n=17) | Before fix | After fix |
+| --- | --- | --- |
+| **Qualification F1** | **0.769** | **0.9474** |
+| precision / recall / accuracy | 0.625 / 1.0 / 0.647 | 1.0 / 0.9 / 0.9412 |
+| Confusion TP / FP / TN / FN | 10 / 6 / 1 / 0 | 9 / 0 / 7 / 1 |
+| Draft gate pass-rate | 0.5625 (9/16) | 0.7778 (7/9) |
+| Mean groundedness / faithfulness | 0.8615 | 0.95 |
+| Live re-verifiability (own_site) | 0.9032 (56/62) | 0.9231 (36/39) |
+
+The fix eliminated **all six** false positives (precision 0.625 → 1.0): the
+non-fintech companies (`figma`, `huggingface`, `linear`, `vercel`, `nilenso`) and the
+incumbent bank (`jpmorganchase`) now disqualify via a reliably-firing "not fintech" /
+"incumbent bank" veto plus the industry penalty.
+
+**Both sets improved (original 0.769 → 0.947, held-out 1.0), so the fix generalizes
+rather than overfitting the 17.**
+
+**The recall cost, stated honestly.** The after-fix original-17 has **one false
+negative — `ramp.com`** (recall 1.0 → 0.9). On that run the assessor flakily returned
+`industry=unknown` for Ramp (a clear fintech), and because industry is now a required
+component, the unknown scored 0.0 and dropped Ramp below threshold (0.28). This is the
+deliberate trade-off: making `industry=unknown` count against a company fixes the
+non-fintech false positives but, when the assessor *flakily* fails to confirm a real
+fintech's industry, it can wrongly reject it. The held-out set did not exhibit this
+(all four good-fits, including borderline `coinbase`, qualified), but it is a real
+residual risk of the assessor's run-to-run variance.
+
+**Draft-gate overreach — a noted finding (not fixed this pass).** Across runs the gate
+rejects a meaningful share of *qualified* drafts (≈44% on the pre-fix 16, ≈22–25%
+after). Spot-checking the flagged claims (e.g. "single-point solution for compliance",
+"strong foundation for accelerating product delivery", AI-capability embellishments),
+these are genuine over-claims the **drafter** adds beyond the cited facts — the gate is
+correctly catching drafter overreach, not being pedantic. Tightening the draft prompt
+to claim less is the natural next step.
+
+**On the two grounding scores.** Under the default strict gate, `groundedness_score`
+and `faithfulness_score` share the same numerator (faithful body claims), so they are
+**numerically identical** and reported as **one** signal — not two independent pieces
+of evidence. They diverge only with `FAITHFULNESS_STRICT=false`.
+
+Reports: held-out at `evals/reports/eval-2026-06-14-holdout.md`; original-17 after-fix
+at `evals/reports/eval-2026-06-14-original17-after.md`.
 
 ### Known limitations
 
 These are honest gaps, documented rather than tuned away:
 
-- **Three qualification false positives** (`linear.app`, `vercel.com`,
-  `nilenso.com`), all with **F1 unchanged at 0.870**:
-    - `linear.app` and `vercel.com` — the qualifier scored `industry=unknown` (it
-      could not confirm fintech/money-movement from the research) and that
-      *unknown* was dropped from the fit score rather than penalized, so a single
-      matched positive signal ("recently raised growth funding") pushed each over
-      the 0.5 threshold (score 0.53). Both are dev-tools companies that should be
-      `not_qualified`.
-    - `nilenso.com` — the model **mis-assessed** industry as `match` for a
-      software consultancy (score 0.67), so it qualified despite being out of ICP.
-- **The industry-gating fix is FUTURE WORK, deliberately not applied here.** The
-  obvious fix — treat `industry=unknown` (and tighten the industry assessment) as
-  disqualifying rather than score-neutral — would likely clear `linear`/`vercel`.
-  But tuning the scorer against the same 17-company set and then reporting the
-  improved number on that set would not be defensible (it would be fitting to the
-  test set). The fix belongs with a held-out set, in a later phase.
-- **Labels are human-proposed.** The ground-truth labels still need a human pass
-  against the rubric before the qualification numbers are fully trustworthy.
+- **Small samples.** Held-out n=8, development n=17, human-proposed labels, a single
+  run each. F1 1.0 on eight companies is encouraging, not conclusive — a larger
+  held-out set is needed before the headline is bankable.
+- **Residual run-to-run variance.** Cerebras is not bit-deterministic even at
+  temperature 0, so a company can vary between runs — including the `ramp.com` false
+  negative above (flaky `industry=unknown` on a real fintech) and draft gate outcomes.
+- **One residual qualification miss type.** The industry rule depends on the assessor
+  confirming industry; when it flakily returns `unknown` for a genuine fintech, the
+  company is wrongly rejected. A confidence/retry on the industry assessment, or a
+  softer penalty, is a candidate follow-up — to be validated on a held-out set.
+- **Labels are human-proposed.** The ground-truth labels (both sets) still need a
+  human pass against the rubric before the numbers are fully trustworthy.
 
-> When the qualification logic changes (against a held-out set) or a new model is
-> used, re-run, then replace this table and bump its **As of** date and **Model**
-> column (documentation protocol, rule 7).
+> When the qualification logic changes or a new model is used, re-run on **both** the
+> development and held-out sets, then replace these tables and bump the **As of** date
+> and **Model** (documentation protocol, rule 7).
