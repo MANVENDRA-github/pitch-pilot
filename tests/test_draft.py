@@ -54,10 +54,11 @@ class FakeLLM:
         self.payload = payload or {}
         self.raises = raises
 
-    def complete(self, system, user):  # pragma: no cover - unused
+    def complete(self, system, user, temperature=None):  # pragma: no cover - unused
         return "OK"
 
-    def complete_json(self, system, user):
+    def complete_json(self, system, user, temperature=None):
+        self.temperature = temperature
         if self.raises:
             raise LLMError("draft model down")
         return self.payload
@@ -118,6 +119,30 @@ class TestRunDraft:
     def test_llm_failure_yields_empty_draft(self):
         draft = run_draft(_research([_OWN_SOFT]), _qual(), FakeLLM(raises=True), _settings())
         assert draft.hooks_used == []
+
+    def test_body_strips_leaked_fact_id_tokens(self):
+        # The model is told not to, but if it leaks "(Fact N)" into the prose the
+        # node strips it as a backstop, leaving clean, natural text.
+        import re
+        llm = FakeLLM({
+            "subject": "Quick note on your platform",
+            "body": "I saw your unified API (Fact 1) and your hosted page (Fact 2) — impressive.",
+            "facts_used": [1],
+        })
+        draft = run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
+        assert draft.body == "I saw your unified API and your hosted page — impressive."
+        assert not re.search(r"[Ff]act\s*#?\s*\d", draft.body)
+        assert "  " not in draft.body  # no doubled spaces left behind
+
+    def test_subject_strips_leaked_fact_id_tokens(self):
+        llm = FakeLLM({"subject": "Loved your API [fact 2]", "body": "b", "facts_used": [1]})
+        draft = run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
+        assert "fact" not in draft.subject.lower()
+
+    def test_draft_uses_zero_temperature(self):
+        llm = FakeLLM({"subject": "s", "body": "b", "facts_used": [1]})
+        run_draft(_research([_OWN_SOFT]), _qual(), llm, _settings())
+        assert llm.temperature == 0.0
 
 
 class TestContextCapGuard:
