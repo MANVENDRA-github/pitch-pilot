@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-14 · **Source files:** `README.md`, `src/pitch_pilot/`
 
-**pitch-pilot** is an autonomous [SDR](glossary.md) (Sales Development Rep) agent.
+**pitch-pilot** is an [SDR](glossary.md) (Sales Development Rep) agent.
 Give it a company **domain** and it researches the company, qualifies it against
 your [Ideal Customer Profile](glossary.md), drafts outreach, verifies every claim
 against a real source, and files the result for a human to review.
@@ -32,17 +32,16 @@ page. See [Groundedness](groundedness.md) for the deep dive.
 qualifier fix ([ADR-0015](decisions.md)) was developed on the original 17 and
 validated on a **held-out** set it never saw:
 
-- **Held-out (n=8, headline): Qualification F1 1.0** (precision 1.0, recall 1.0;
-  TP/FP/TN/FN = 4/0/4/0) — every unseen company landed correctly, including an
-  incumbent bank and two borderlines.
-- **Original 17 (development): F1 0.769 → 0.947** after the fix (all six false
-  positives eliminated; one new false negative from a flaky industry assessment).
+- **Development set (n=17): Qualification F1 0.947** (precision 1.0, recall 0.90;
+  TP/FP/TN/FN = 9/0/7/1) — up from 0.769 after the fix (all six false positives
+  eliminated; one new false negative from a flaky industry assessment).
+- **Generalizes to a held-out set (n=8)** it never saw: F1 1.0 (TP/FP/TN/FN = 4/0/4/0)
+  — encouraging on eight companies, not yet conclusive.
 - **Mean groundedness 0.95–0.96**, equal to the faithfulness score under the strict
   gate (one signal, not two).
 
-Both sets improved, so the fix generalizes rather than overfitting. Full provenance,
-before/after tables, the live-re-verifiability caveat, and the honest limitations:
-[Evaluation](evals.md).
+Full provenance, before/after tables, the live-re-verifiability caveat, and the honest
+limitations: [Evaluation](evals.md).
 
 ## What it does — and refuses to do
 
