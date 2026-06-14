@@ -274,7 +274,7 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
 - **Context:** The first full-eval attempt showed one company's research consuming
   ~40k tokens — feeding the extractor up to ~12,000 characters per source across
   ~13 extraction calls. That blew Groq's free-tier **100k tokens/day** cap after
-  ~2 companies, stalling the eval ([ADR-0011](#adr-0011-the-eval-set-includes-negatives--sparse-the-harness-caches-checkpoints-and-backs-off)).
+  ~2 companies, stalling the eval ([ADR-0011](#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off)).
   But the deeper point is that this cost is real in production too: most of those
   characters are boilerplate/nav/footer text that adds little grounded signal. A
   leaner research pass is both the quota fix **and** a genuine cost/latency
@@ -312,7 +312,7 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
 
 - **Date:** 2026-06-13
 - **Status:** Accepted
-- **Context:** Even after leaning out research depth ([ADR-0012](#adr-0012-research-depth-is-leaned-out-by-default-quota--costlatency-and-the-eval-runs-at-shipping-depth)),
+- **Context:** Even after leaning out research depth ([ADR-0012](#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth)),
   the full eval (~17 companies) needs more tokens than Groq's free **100k/day** cap
   allows in a single day, so a complete, reproducible run kept spilling across days
   (and stalling on per-minute limits). Gemini's free tier is even tighter (20
