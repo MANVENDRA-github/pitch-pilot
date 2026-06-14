@@ -1,6 +1,6 @@
 # Clients
 
-> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/clients/`
+> **Last updated:** 2026-06-14 · **Source files:** `src/pitch_pilot/clients/`
 >
 > P4-era: a Cerebras provider was added so the eval can run on its ~1M tokens/day free tier (see ADR-0013).
 
@@ -38,8 +38,12 @@ Each client also caches its underlying SDK client after first construction (an `
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `complete(system, user)` | `str` | Free-text completion, stripped of surrounding whitespace. |
-| `complete_json(system, user)` | `dict` | A parsed JSON **object**. Raises `LLMJSONError` on bad JSON. |
+| `complete(system, user, temperature=None)` | `str` | Free-text completion, stripped of surrounding whitespace. |
+| `complete_json(system, user, temperature=None)` | `dict` | A parsed JSON **object**. Raises `LLMJSONError` on bad JSON. |
+
+`temperature` is optional (the provider default when `None`); it is sent only when
+set, so it stays backward-compatible. Gate-critical calls (draft, verify judge) pass
+`0.0` for reproducible output.
 
 Both take a `system` prompt (role/behavior) and a `user` prompt (the request). The error hierarchy is `LLMError(RuntimeError)` with `LLMJSONError(LLMError)` for JSON-parse failures specifically.
 
