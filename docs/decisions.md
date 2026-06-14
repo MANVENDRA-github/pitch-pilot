@@ -386,3 +386,48 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   cited by id), and `VerificationResult.tier_breakdown` counts the grounding hooks
   by tier. The substring-anchoring guarantee is unchanged — it simply lives in one
   place now.
+
+## ADR-0015 — Qualifier: reliable negative-signal veto + industry as a required component
+
+- **Date:** 2026-06-14
+- **Status:** Accepted
+- **Context:** The temperature-0 re-baseline ([Evaluation](evals.md)) exposed six
+  qualification false positives (F1 0.769, precision 0.625): non-fintech companies
+  (`figma`, `huggingface`, `linear`, `vercel`, `nilenso`) and an incumbent bank
+  (`jpmorganchase`) all qualified. A diagnostic on the raw assessor output found two
+  root causes:
+  1. **The negative-signal veto under-fired.** Negative signals are phrased as
+     negations ("not fintech or no money movement"), and the assessor — told "if the
+     facts don't establish it, mark it `unknown`; don't guess" — defaulted negations
+     to `unknown` because no fact *literally states* the negation. So the hard veto
+     rarely triggered, and it was flaky run-to-run.
+  2. **`industry=unknown` was dropped from the score.** Unknown structural components
+     were renormalized out, so a company whose industry could not be confirmed was not
+     penalized; one matched positive signal then cleared the 0.5 threshold (0.53).
+- **Decision:** Two targeted changes in `nodes/qualify.py`:
+  1. **Judge negative signals from the described business, not literal negation.** The
+     assessor prompt now instructs: for a NEGATIVE signal, decide whether the
+     disqualifying condition is *true of the company given what the facts reveal about
+     its core business* (e.g. "not fintech" matches when the business is design tools
+     / dev infra / ML hosting; "large incumbent bank" matches a major established
+     bank) — use `unknown` only when the facts genuinely don't reveal the domain.
+     "Don't guess" still governs structural attributes and positive signals.
+  2. **Industry is a required component for an industry-specified ICP.** When
+     `icp.industries` is non-empty, an `unknown` *or* `no_match` industry scores 0.0
+     and stays in the denominator (instead of being dropped), so a fintech ICP does
+     not qualify a company it cannot place in-industry. Size/region unknowns are still
+     dropped — research gaps there are noise, not disqualifying.
+- **Validation (the part that makes this defensible).** The fix was developed against
+  the original 17 and then validated on a **held-out** set of 8 unseen companies
+  (`examples/eval_companies_holdout.json`). Both improved: original 17 F1 **0.769 →
+  0.947** (all six FPs eliminated, precision → 1.0); held-out F1 **1.0** (4/4 fit,
+  4/4 not — including an incumbent bank and two borderlines). Improving on a set it
+  was never tuned on is the evidence it generalizes rather than overfits.
+- **Consequences / trade-off:** Making `industry=unknown` count against a company
+  introduced **one false negative** on the dev set — `ramp.com`, when the assessor
+  flakily returned `industry=unknown` for a genuine fintech, fell below threshold
+  (recall 1.0 → 0.9). This is the deliberate precision/recall trade (we accept a rare
+  flaky-industry miss to stop the systematic non-fintech FPs); the held-out set did
+  not exhibit it. A confidence/retry on the industry assessment is a candidate
+  follow-up. The draft-gate overreach rate (drafter over-claiming, caught correctly by
+  the gate) is noted in [Evaluation](evals.md) as a separate, not-yet-fixed finding.
