@@ -136,11 +136,11 @@ class RetryingLLM:
                 self.retries += 1
                 attempt += 1
 
-    def complete(self, system: str, user: str) -> str:
-        return self._attempt(lambda: self.inner.complete(system, user))
+    def complete(self, system: str, user: str, **kwargs) -> str:
+        return self._attempt(lambda: self.inner.complete(system, user, **kwargs))
 
-    def complete_json(self, system: str, user: str) -> dict:
-        return self._attempt(lambda: self.inner.complete_json(system, user))
+    def complete_json(self, system: str, user: str, **kwargs) -> dict:
+        return self._attempt(lambda: self.inner.complete_json(system, user, **kwargs))
 
 
 # ---------------------------------------------------------------------------
