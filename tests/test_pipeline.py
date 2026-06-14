@@ -71,10 +71,10 @@ class PipelineLLM:
         self.draft_payload = draft_payload
         self.draft_called = False
 
-    def complete(self, system, user):  # pragma: no cover - unused
+    def complete(self, system, user, temperature=None):  # pragma: no cover - unused
         return "OK"
 
-    def complete_json(self, system, user):
+    def complete_json(self, system, user, temperature=None):
         if user.startswith("SOURCE URL:"):
             url = user.split("SOURCE URL:", 1)[1].splitlines()[0].strip()
             return {"facts": SEED_FACTS if url == "https://acme.com" else []}
