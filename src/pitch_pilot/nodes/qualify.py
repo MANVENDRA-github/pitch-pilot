@@ -9,14 +9,19 @@ signals, and making the qualified / not-qualified call).
 
 Two principles shape it:
 
-* **Unknowns are never guessed.** When the facts do not establish a signal, the
-  assessment marks it ``"unknown"`` rather than assuming it is present or absent.
-  Unknown *structural* attributes (industry, size, region) are dropped from the
-  score and the remaining weights are renormalized, so a company is not punished
-  for a research gap.
+* **Unknowns are never guessed.** When the facts do not establish a *positive*
+  signal or a *size/region* attribute, the assessment marks it ``"unknown"`` and
+  that component is dropped from the score (weights renormalized), so a research
+  gap there does not punish the company.
+* **Industry is required when the ICP names target industries.** Then an
+  ``unknown`` or ``no_match`` industry scores 0.0 and stays in the denominator —
+  a fintech-specific ICP must not qualify a company it cannot place in-industry
+  (see ADR-0015).
 * **A matched negative signal is a hard veto.** No fit score, however high, can
   qualify a company that matches an ICP negative signal (a competitor, a
-  non-profit, …).
+  non-profit, …). Negative signals are judged from the company's described
+  business, so negations like "not fintech" fire reliably rather than defaulting
+  to ``unknown``.
 
 The scoring weights and the veto live here in code (not in the prompt), so the
 verdict is reproducible and explainable from the same assessment every time.
@@ -41,6 +46,10 @@ logger = logging.getLogger(__name__)
 # the facts leave unknown are dropped and the remaining weights renormalized.
 _WEIGHTS = {"industry": 0.35, "size": 0.25, "region": 0.15, "positives": 0.25}
 
+# Gate-critical call: assess deterministically so the qualification verdict (and the
+# headline F1) is reproducible, not a nondeterministic snapshot.
+_QUALIFY_TEMPERATURE = 0.0
+
 # How many facts to show the assessor, how long each line may be, and a token
 # budget for the whole facts block so the prompt fits a small (8192-token)
 # free-tier context window even with many/long facts (see ADR-0013).
@@ -56,8 +65,19 @@ _QUALIFY_SYSTEM = (
     "qualifies — downstream code does that.\n\n"
     "Strict rules:\n"
     "- Judge ONLY from the provided FACTS. Never use outside knowledge.\n"
-    "- If the FACTS do not establish something, its status is 'unknown'. Do not "
+    "- For structural attributes (industry, region, employee_count) and POSITIVE "
+    "signals: if the FACTS do not establish it, the status is 'unknown'. Do not "
     "guess 'match' or 'no_match'.\n"
+    "- NEGATIVE signals describe a disqualifying condition. Judge whether that "
+    "condition is TRUE of this company from what the FACTS reveal about its core "
+    "business — reason from the business the facts describe; do NOT default to "
+    "'unknown' just because no fact literally states the negation. For example "
+    "'not fintech or no money movement' is 'match' when the facts show the business "
+    "is outside payments/banking/lending (e.g. design tools, developer "
+    "infrastructure, analytics, ML model hosting); 'large incumbent bank that builds "
+    "fraud in-house' is 'match' when the facts describe a major established bank. Use "
+    "'unknown' for a negative only when the facts genuinely don't reveal what the "
+    "company does.\n"
     "- For every match, cite the supporting fact text in 'evidence_fact' (copied "
     "from the FACTS); otherwise use an empty string.\n"
     "- For employee_count, return an integer 'value' only if a fact states it, "
@@ -100,7 +120,9 @@ def _qualify_user_prompt(icp: ICP, facts: list[Fact]) -> str:
 def _assess(icp: ICP, facts: list[Fact], llm: LLMClient) -> dict:
     """Ask the LLM to assess the ICP against the facts; return ``{}`` on failure."""
     try:
-        return llm.complete_json(_QUALIFY_SYSTEM, _qualify_user_prompt(icp, facts))
+        return llm.complete_json(
+            _QUALIFY_SYSTEM, _qualify_user_prompt(icp, facts), temperature=_QUALIFY_TEMPERATURE
+        )
     except LLMError as exc:
         logger.warning("qualification assessor LLM call failed: %s", exc)
         return {}
@@ -205,8 +227,19 @@ def run_qualification(
     )
 
     # --- Weighted, renormalized fit score over the components we actually know ---
+    # Industry is a REQUIRED attribute when the ICP names target industries: an
+    # unconfirmed (``unknown``) or mismatched industry scores 0.0 and stays in the
+    # denominator, so a research gap on industry counts against the company instead
+    # of being dropped. A fintech-specific ICP must not qualify a company it cannot
+    # place in-industry (the lesson behind the figma/huggingface false positives —
+    # see ADR-0015). Size/region unknowns are still dropped: gaps there are research
+    # noise, not disqualifying.
+    if icp.industries:
+        industry_component: float | None = 1.0 if industry == "match" else 0.0
+    else:
+        industry_component = _component_score(industry)
     components: dict[str, float | None] = {
-        "industry": _component_score(industry),
+        "industry": industry_component,
         "size": _component_score(size),
         "region": _component_score(region),
         "positives": positives_component,
