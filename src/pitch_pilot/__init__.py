@@ -15,4 +15,4 @@ Hero guarantee — **groundedness**:
     * LinkedIn scraping is deliberately out of scope.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.9.0"
