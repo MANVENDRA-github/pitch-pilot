@@ -56,6 +56,22 @@ _FACTS_TOKEN_BUDGET = 1500
 # Policy B: only these tiers may carry a stated draft claim.
 _CLAIMABLE_TIERS = ("own_site", "authoritative")
 
+# Gate-critical call: draft deterministically for reproducible output (see verify).
+_DRAFT_TEMPERATURE = 0.0
+
+# Backstop for fact-id leakage. The numbered ids are a selection mechanism for the
+# ``facts_used`` field only; the model is told never to put them in the prose, and
+# this strips any that slip through (e.g. ``(Fact 15)`` / ``[fact 2]``).
+_FACT_ID_RE = re.compile(r"\s*[\(\[]\s*facts?\s*#?\s*\d+\s*[\)\]]", re.IGNORECASE)
+
+
+def _strip_fact_ids(text: str) -> str:
+    """Remove any leaked fact-id citations like ``(Fact 15)`` from draft prose."""
+    cleaned = _FACT_ID_RE.sub("", text)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)        # collapse doubled spaces
+    cleaned = re.sub(r"\s+([.,;:!?])", r"\1", cleaned)   # tidy space-before-punctuation
+    return cleaned.strip()
+
 _DRAFT_SYSTEM = (
     "You are an SDR writing a short, specific cold outreach email. You are given a "
     "NUMBERED list of CLAIMABLE FACTS about a company and (sometimes) CONTEXT-ONLY "
@@ -70,6 +86,9 @@ _DRAFT_SYSTEM = (
     "claim and must NEVER appear in 'facts_used'.\n"
     "- In 'facts_used', return the integer ids (from the numbered CLAIMABLE FACTS) of "
     "every fact your email is grounded in.\n"
+    "- The fact id numbers are ONLY for the 'facts_used' field. NEVER write an id in "
+    "the subject or body — no '(Fact 3)', 'Fact 3', '[2]', etc. The email must read "
+    "as natural prose a prospect would see.\n"
     "- Do not be pushy; no fake urgency; no placeholders like [Name].\n\n"
     'Respond with a JSON object: {"subject": "...", "body": "...", "facts_used": '
     "[<id>, ...]}"
@@ -225,14 +244,17 @@ def run_draft(
     company_name = research.company.name or research.company.domain if research else "the company"
     try:
         payload = llm.complete_json(
-            _DRAFT_SYSTEM, _draft_user_prompt(company_name, claimable, context, qualification)
+            _DRAFT_SYSTEM,
+            _draft_user_prompt(company_name, claimable, context, qualification),
+            temperature=_DRAFT_TEMPERATURE,
         )
     except LLMError as exc:
         logger.warning("draft LLM call failed: %s", exc)
         return Draft(subject="", body="", hooks_used=[])
 
-    subject = str(payload.get("subject", "")).strip()
-    body = str(payload.get("body", "")).strip()
+    # Strip any leaked fact-id tokens the prompt told the model to keep out (backstop).
+    subject = _strip_fact_ids(str(payload.get("subject", "")).strip())
+    body = _strip_fact_ids(str(payload.get("body", "")).strip())
     hooks_used = _selected_hooks(payload.get("facts_used"), _shown_claimable(claimable), claimable)
 
     return Draft(subject=subject, body=body, hooks_used=hooks_used)
