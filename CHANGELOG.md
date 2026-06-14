@@ -10,6 +10,145 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _Nothing yet — P5 (storage and review app: production `Store` backends and a
 human-review UI over the queue) is next._
 
+## [0.9.0] — 2026-06-14
+
+**Qualifier fix + held-out validation.** The temperature-0 re-baseline exposed six
+qualification false positives (F1 0.769); a diagnostic traced them to an under-firing
+negative-signal veto and `industry=unknown` being dropped from the score (see
+ADR-0015).
+
+### Changed
+
+- **`nodes/qualify.py` — reliable negative-signal veto.** The assessor prompt now
+  judges NEGATIVE signals from the company's described business (so a negation like
+  "not fintech" fires when the facts show design tools / dev infra / ML hosting,
+  instead of defaulting to `unknown`). Structural attributes and positive signals
+  still follow "don't guess → unknown".
+- **`nodes/qualify.py` — industry is a required component.** When the ICP names target
+  industries, an `unknown` or `no_match` industry scores 0.0 and stays in the
+  denominator (instead of being dropped), so a fintech ICP can't qualify a company it
+  can't place in-industry. Size/region unknowns are still dropped.
+
+### Added
+
+- **`examples/eval_companies_holdout.json`** — an 8-company held-out validation set
+  (clear good-fit, clear bad-fit incl. an incumbent bank, two borderline) to test
+  whether qualifier changes generalize vs. overfit.
+
+### Eval (cerebras/gpt-oss-120b, temperature 0, 2026-06-14)
+
+- **Held-out (n=8, headline): F1 1.0** (TP=4, FP=0, TN=4, FN=0) — every unseen company
+  correct, including an incumbent bank and two borderlines.
+- **Original 17 (development): F1 0.769 → 0.947** — all six false positives eliminated
+  (precision 0.625 → 1.0). Both sets improved, so the fix generalizes.
+- **Trade-off, flagged:** one new false negative on the dev set (`ramp.com`, flaky
+  `industry=unknown` on a real fintech; recall 1.0 → 0.9). Draft-gate overreach
+  (drafter over-claiming, caught by the gate) noted as a separate finding. See
+  `docs/evals.md`.
+
+## [0.8.0] — 2026-06-14
+
+**Draft grounding decoupled from phrasing.** The first full Cerebras eval revealed
+that validating draft hooks as **verbatim source substrings** was brittle: faithful
+paraphrases were discarded, so most qualified companies scored
+`groundedness=0.0` with empty verdicts — an artifact of the matching layer, not of
+grounding. Source-text grounding belongs at extraction; the draft should ground by
+*selecting facts* and the verify gate should judge the *body*'s faithfulness (see
+ADR-0014).
+
+### Changed
+
+- **Draft node** (`nodes/draft.py`) — grounds by **fact-selection**: the model is
+  shown the claimable (first-party) facts as a numbered list and returns the **ids**
+  it grounded the email in. `hooks_used` is the canonical claim text of those facts,
+  grounded by construction. No more verbatim-hook substring matching or fuzzy
+  matching of paraphrased text back to facts.
+- **Verify node** (`nodes/verify.py`) — now a **structural** check (every hook
+  re-resolves to a first-party fact; else `structural`) plus **one** body-faithfulness
+  judge (`judge_body`) over the draft **body** against the selected facts, rating each
+  body claim `faithful` / `overreach` / `unsupported`. Passes iff grounded, body
+  non-empty, judge ran, and no `unsupported` (and no `overreach` under
+  `FAITHFULNESS_STRICT`). `groundedness_score` redefined as
+  `faithful_body_claims / total_body_claims`. `judge_faithfulness` is replaced by
+  `judge_body`.
+- **`VerificationResult` / `ClaimVerdict`** — `claim_verdicts` now describe **body**
+  claims (with the supporting fact cited by id); `tier_breakdown` counts the grounding
+  hooks by tier; failure reasons shrink to `unsupported` / `overreach` / `structural`
+  / `judge-error`.
+- **No fact-id leakage in drafts** — the draft prompt forbids fact ids in the
+  subject/body, with a regex backstop (`_strip_fact_ids`) that removes any leaked
+  `(Fact N)` token (the ids are for the `facts_used` field only).
+- **Deterministic gate-critical calls** — `LLMClient.complete` / `complete_json` take
+  an optional `temperature` (sent only when set; provider default otherwise), and the
+  **qualify, draft, and verify-judge** calls pass `temperature=0` so the headline
+  numbers are a reproducible run, not a lucky sample.
+
+### Added
+
+- **`redraft` eval command** (`evals/run_eval.py`) — re-runs only draft + verify for
+  already-qualified companies, reusing cached research **and** each record's frozen
+  qualification verdict (the qualification matrix is never recomputed).
+
+### Eval — canonical temperature-0 re-baseline (cerebras/gpt-oss-120b, 2026-06-14, n=17)
+
+One clean full run with qualify/draft/verify at temperature 0 (research reused from
+cache). Replaces the earlier mixed table; this run is canonical.
+
+- Qualification: TP=10, FP=6, TN=1, FN=0 → **F1 0.769** (precision 0.625, recall 1.0,
+  accuracy 0.647).
+- Draft-gate pass-rate **9/16 = 0.5625**, mean groundedness/faithfulness **0.8615**,
+  own_site live re-verifiability **0.9032 (56/62)**.
+- Reproducibility honesty: an earlier *non-deterministic* run scored F1 0.870; at
+  temperature 0 the negative-signal veto under-fires consistently (figma/huggingface/
+  jpmorganchase become false positives), so the reproducible number is lower. See
+  `docs/evals.md` for the full Known Limitations (six FPs; veto-hardening /
+  industry-gating fix deferred to a held-out set; residual temp-0 variance).
+
+## [0.7.0] — 2026-06-13
+
+**Cerebras provider.** Adds a third LLM provider so the eval can run end-to-end in
+one session on Cerebras's ~1M tokens/day free tier (~10x Groq) (see ADR-0013).
+
+### Added
+
+- `CerebrasClient` (`clients/llm.py`) — OpenAI-compatible via `cerebras-cloud-sdk`;
+  mirrors `GroqClient` (JSON mode + lenient parsing + error normalization to
+  `LLMError`). Default model `gpt-oss-120b` (available models vary by Cerebras
+  account/tier — check `models.list()`).
+- `CEREBRAS_API_KEY` (optional) and `CEREBRAS_MODEL` settings; `get_llm_client()`
+  now selects `"cerebras"`. `Settings.active_model` resolves the model id for the
+  active provider.
+- `CONTEXT_TOKEN_CAP` (8192) and `trim_to_token_budget()` — bound the qualify/draft
+  facts payloads so no single prompt exceeds Cerebras's free-tier context window.
+- `cerebras-cloud-sdk` runtime dependency (lazily imported — only needed when the
+  provider is selected).
+
+### Changed
+
+- `LLM_PROVIDER` now accepts `"cerebras"` in addition to `"gemini"` / `"groq"`; the
+  smoke check and eval report use `Settings.active_model` so the right model is named.
+
+## [0.6.0] — 2026-06-13
+
+**Lean research depth (default).** Research is leaner by default — cheaper, faster,
+and within free-tier token caps — at the same depth the eval and production both
+run, so there is no eval-vs-prod mismatch (see ADR-0012).
+
+### Added
+
+- `RESEARCH_MAX_PAGE_CHARS` (default `3500`) — truncates each source's text fed to
+  the extractor; the biggest token lever (was ~12,000). `extract_facts` truncates
+  once and runs the evidence-substring check against that same truncated text, so
+  groundedness is preserved.
+- `RESEARCH_MAX_FACTS_PER_SOURCE` (default `5`) setting (was a fixed `8`).
+
+### Changed
+
+- `RESEARCH_MAX_QUERIES` default 4 → **3**.
+- Research depth is now configured via `Settings` (the three knobs above) and
+  passed through `run_research` to the extractor; the old module constants survive
+  only as lean fallback defaults. Per-company research token use roughly halves.
+
 ## [0.5.0] — 2026-06-13
 
 **P4 — Eval harness.** The offline evaluation that produces the headline numbers,

@@ -28,8 +28,11 @@ from __future__ import annotations
 from collections import Counter
 
 # The verify gate's failure reasons, in reporting order. Counting these proves the
-# gate *catches* bad claims, not just that it passes good ones.
-FAILURE_REASONS = ("unbacked", "volatile-source", "not-substring", "overreach", "unsupported")
+# gate *catches* bad claims, not just that it passes good ones. Under the P5 gate
+# hooks are grounded by construction, so the gate's failures are body-faithfulness
+# verdicts (``unsupported`` / ``overreach``), a never-should-happen ``structural``
+# violation, and a fail-closed ``judge-error``.
+FAILURE_REASONS = ("unsupported", "overreach", "structural", "judge-error")
 
 
 def ok_results(results: list[dict]) -> list[dict]:

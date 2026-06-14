@@ -71,17 +71,18 @@ class PipelineLLM:
         self.draft_payload = draft_payload
         self.draft_called = False
 
-    def complete(self, system, user):  # pragma: no cover - unused
+    def complete(self, system, user, temperature=None):  # pragma: no cover - unused
         return "OK"
 
-    def complete_json(self, system, user):
+    def complete_json(self, system, user, temperature=None):
         if user.startswith("SOURCE URL:"):
             url = user.split("SOURCE URL:", 1)[1].splitlines()[0].strip()
             return {"facts": SEED_FACTS if url == "https://acme.com" else []}
         if user.startswith("ICP:"):
             return self.assessment
-        if user.startswith("CLAIM:"):
-            return {"verdict": "faithful", "reason": "evidence supports the claim"}
+        if user.startswith("BODY:"):
+            return {"claims": [{"claim": "Acme builds developer tools",
+                                "verdict": "faithful", "fact_id": 1}]}
         if "Write the outreach email" in user:
             self.draft_called = True
             return self.draft_payload
@@ -129,7 +130,7 @@ class TestPipelineRouting:
 
     def test_qualified_passing_draft_is_logged_ready(self, monkeypatch):
         draft_payload = {"subject": "Loved your tools", "body": "Hi Acme...",
-                         "hooks": ["Acme builds developer tools"]}
+                         "facts_used": [1]}
         llm = PipelineLLM(assessment=QUALIFIED_ASSESSMENT, draft_payload=draft_payload)
         store = FakeStore()
         final = _run(llm, store, monkeypatch)
@@ -143,9 +144,9 @@ class TestPipelineRouting:
         assert store.review == []
 
     def test_qualified_failing_verify_routes_to_review(self, monkeypatch):
-        # The draft node drops the fabricated hook, leaving nothing grounded to
-        # stand on; verify then fails (no claims) and the lead routes to review.
-        draft_payload = {"subject": "s", "body": "b", "hooks": ["Acme is a unicorn"]}
+        # The draft node drops the out-of-range fact id, leaving nothing grounded to
+        # stand on; verify then fails (no hooks) and the lead routes to review.
+        draft_payload = {"subject": "s", "body": "b", "facts_used": [99]}
         llm = PipelineLLM(assessment=QUALIFIED_ASSESSMENT, draft_payload=draft_payload)
         store = FakeStore()
         final = _run(llm, store, monkeypatch)
@@ -162,7 +163,7 @@ class TestBuildPipelineCompiles:
     def test_compiles_and_runs_end_to_end(self, monkeypatch):
         llm = PipelineLLM(
             assessment=QUALIFIED_ASSESSMENT,
-            draft_payload={"subject": "s", "body": "b", "hooks": ["Acme builds developer tools"]},
+            draft_payload={"subject": "s", "body": "b", "facts_used": [1]},
         )
         final = _run(llm, FakeStore(), monkeypatch)
         # Every stage produced its artifact.

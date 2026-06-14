@@ -1,6 +1,6 @@
 # Data Models
 
-> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/models/`
+> **Last updated:** 2026-06-14 · **Source files:** `src/pitch_pilot/models/`
 
 pitch-pilot's data contracts are a set of [pydantic](https://docs.pydantic.dev/) models — one model per artifact that flows through the pipeline. They are the typed boundary between nodes: each node reads some models off the shared state and writes others back. This page documents every model and field exactly as defined in `src/pitch_pilot/models/`.
 
@@ -108,38 +108,38 @@ Each fact is also tagged with a **`source_tier`** that records how trustworthy i
 
 ## Draft
 
-`Draft` is the outreach email produced for a lead. The [`draft_node`](pipeline.md) writes it only from grounded `Fact` objects, and every hook it claims to use is validated back against the facts — so `hooks_used` is always a subset of the real research facts. Hard-numeric claims (funding, headcount, …) from `third_party_snippet` facts are withheld from drafting entirely. It is then checked by the verification step before a human reviews it. pitch-pilot never sends a `Draft` automatically.
+`Draft` is the outreach email produced for a lead. The [`draft_node`](pipeline.md) grounds it by **selecting facts**: the model is shown the first-party (`own_site`/`authoritative`) facts and returns the ids of the ones it grounded the email in, so `hooks_used` is always a subset of the real research facts (grounded by construction — see [ADR-0014](decisions.md)). The body is free prose the model may paraphrase. It is then checked by the verification step before a human reviews it. pitch-pilot never sends a `Draft` automatically.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `subject` | `str` | required | The email subject line. |
-| `body` | `str` | required | The email body. |
-| `hooks_used` | `list[str]` | `[]` (empty list) | The exact `Fact` claims the draft referenced — each traces back to a grounded source. Validated against the research facts, so a hook the model invents is discarded. |
+| `body` | `str` | required | The email body (free prose; the verify node judges its faithfulness). |
+| `hooks_used` | `list[str]` | `[]` (empty list) | The canonical claim text of the first-party `Fact` objects the model selected to ground the email — each traces back to a grounded source. Grounded by construction (selection is by fact id), so an invented selection resolves to nothing and is dropped. |
 
 ## VerificationResult
 
-`VerificationResult` is the groundedness audit of a `Draft` and the enforcement point for the hero guarantee. The [`verify_node`](pipeline.md) checks each claim (the draft's `hooks_used`) and **passes the draft only if every claim is *verified*** — backed by a first-party (`own_site`/`authoritative`) `Fact`, substring-anchored, and judged `faithful` by the LLM (or `overreach` when `FAITHFULNESS_STRICT` is off). The full methodology, and how each score is defined, lives in [groundedness.md](groundedness.md).
+`VerificationResult` is the groundedness audit of a `Draft` and the enforcement point for the hero guarantee. The [`verify_node`](pipeline.md) re-resolves the draft's hooks to first-party facts (structural), then runs an LLM judge over the **body**'s claims against those facts. It **passes the draft only if** it is grounded, the body is non-empty, the judge ran, and no body claim is `unsupported` (and none is `overreach` when `FAITHFULNESS_STRICT`). The full methodology, and how each score is defined, lives in [groundedness.md](groundedness.md).
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `groundedness_score` | `float` | required | Fraction of claims fully verified (`grounded_claims / total_claims`), in `[0.0, 1.0]`. Reported even when the draft passes. |
-| `faithfulness_score` | `float` | `0.0` | Fraction of claims the judge rated `faithful` (`faithful_claims / total_claims`), in `[0.0, 1.0]`. |
-| `total_claims` | `int` | required | Total number of claims checked (the draft's hooks). |
-| `grounded_claims` | `int` | required | Number of claims that are fully verified (the numerator of `groundedness_score`). |
-| `tier_breakdown` | `dict[str, int]` | `{}` | Count of claims per backing source tier, e.g. `{"own_site": 2, "unbacked": 1}`. |
-| `claim_verdicts` | `list[ClaimVerdict]` | `[]` (empty list) | The per-claim audit trail (see `ClaimVerdict` below). |
-| `flagged_claims` | `list[str]` | `[]` (empty list) | Failure lines for claims that did not verify, each prefixed with the reason: `unbacked:` / `volatile-source:` / `not-substring:` / `overreach:` / `unsupported:`. |
-| `passed` | `bool` | required | True only if there is at least one claim and **every** claim is verified. |
+| `groundedness_score` | `float` | required | Fraction of body claims verified (`grounded_claims / total_claims`), in `[0.0, 1.0]`; a claim is verified when judged `faithful` (or `overreach` when not strict). `1.0` for a grounded body with no checkable claim; `0.0` for an ungrounded/empty-body draft. |
+| `faithfulness_score` | `float` | `0.0` | Fraction of body claims the judge rated `faithful` (`faithful_claims / total_claims`), in `[0.0, 1.0]`. |
+| `total_claims` | `int` | required | Number of body claims the judge extracted and checked. |
+| `grounded_claims` | `int` | required | Number of body claims that count as verified (the numerator of `groundedness_score`). |
+| `tier_breakdown` | `dict[str, int]` | `{}` | Count of the draft's grounding facts (hooks) per source tier, e.g. `{"own_site": 2}`. |
+| `claim_verdicts` | `list[ClaimVerdict]` | `[]` (empty list) | The per-body-claim audit trail (see `ClaimVerdict` below). |
+| `flagged_claims` | `list[str]` | `[]` (empty list) | Failure lines, each prefixed with the reason: `structural:` / `overreach:` / `unsupported:` / `judge-error:`. |
+| `passed` | `bool` | required | True only if the draft is grounded, the body is non-empty, the judge ran, and no body claim failed. |
 
 ## ClaimVerdict
 
-`ClaimVerdict` is the per-claim audit trail produced by the verify node — one per claim the draft stands on, pass or fail — so a reviewer can see exactly why each claim was accepted or rejected.
+`ClaimVerdict` is the per-body-claim audit trail produced by the verify node — one per factual claim the body makes about the company, pass or fail — so a reviewer can see which fact (if any) backs each claim and how the judge rated it.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `claim` | `str` | required | The draft claim under audit (a `Draft` hook). |
-| `fact_used` | `str \| None` | `None` | The claim text of the backing `Fact` chosen to support it; `None` if unbacked. |
-| `source_url` | `str \| None` | `None` | The backing fact's source URL; `None` if unbacked. |
-| `tier` | `str \| None` | `None` | The backing fact's source tier; `None` if unbacked. |
-| `substring_ok` | `bool` | `False` | Whether the backing fact carries a verbatim `evidence` snippet (the extraction-time substring guard held). |
-| `faithfulness` | `Literal \| None` | `None` | The judge verdict (`faithful`/`overreach`/`unsupported`), or `None` when the claim failed an earlier check and was not judged. |
+| `claim` | `str` | required | The body claim under audit (extracted by the faithfulness judge). |
+| `fact_used` | `str \| None` | `None` | The claim text of the supporting `Fact` the judge cited; `None` when `unsupported`. |
+| `source_url` | `str \| None` | `None` | The supporting fact's source URL; `None` when unsupported. |
+| `tier` | `str \| None` | `None` | The supporting fact's source tier; `None` when unsupported. |
+| `substring_ok` | `bool` | `False` | Whether the supporting fact carries a verbatim `evidence` snippet (the extraction-time substring guard held). |
+| `faithfulness` | `Literal \| None` | `None` | The judge verdict for this body claim (`faithful`/`overreach`/`unsupported`). |

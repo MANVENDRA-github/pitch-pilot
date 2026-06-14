@@ -6,8 +6,9 @@ deterministic guarantees the node layers on top of that assessment:
 
 * a matched negative signal is a hard veto, regardless of fit score;
 * the fit score is computed deterministically from the assessment;
-* unknowns are never guessed — neither matched nor missed, and unknown structural
-  attributes are dropped from the score, not penalized;
+* unknowns are never guessed — neither matched nor missed; unknown *size/region*
+  are dropped from the score, but an unknown/`no_match` *industry* is penalized
+  (0.0, kept in the denominator) when the ICP names target industries;
 * with no facts, the company is not qualified and the LLM is never called.
 """
 
@@ -57,17 +58,23 @@ class FakeLLM:
         self.raises = raises
         self.calls = 0
 
-    def complete(self, system, user):  # pragma: no cover - unused
+    def complete(self, system, user, temperature=None):  # pragma: no cover - unused
         return "OK"
 
-    def complete_json(self, system, user):
+    def complete_json(self, system, user, temperature=None):
         self.calls += 1
+        self.temperature = temperature
         if self.raises:
             raise LLMError("assessor down")
         return self.assessment
 
 
 class TestRunQualification:
+    def test_assessor_uses_zero_temperature(self):
+        llm = FakeLLM({"industry": {"status": "unknown"}})
+        run_qualification(_research(), _icp(), llm, _settings())
+        assert llm.temperature == 0.0
+
     def test_deterministic_score(self):
         assessment = {
             "industry": {"status": "match"},
@@ -105,7 +112,7 @@ class TestRunQualification:
 
     def test_unknowns_are_never_guessed(self):
         assessment = {
-            "industry": {"status": "unknown"},
+            "industry": {"status": "match"},
             "region": {"status": "unknown"},
             "employee_count": {"value": None},
             "positive_signals": [
@@ -118,13 +125,52 @@ class TestRunQualification:
             ],
         }
         result = run_qualification(_research(), _icp(), FakeLLM(assessment), _settings())
-        # Only the positives component is known: 1 of 2 matched -> 0.5
-        assert result.score == 0.5
+        # industry match(.35) + positives 1/2(.25*0.5); region & size unknown -> dropped.
+        # = (0.35 + 0.125) / (0.35 + 0.25) = 0.7917
+        assert result.score == 0.7917
         assert result.matched_signals == ["recent funding"]
         # The unknown positive is neither matched nor missed (not guessed).
         assert "hiring engineers" not in result.matched_signals
         assert "hiring engineers" not in result.missed_signals
         # Unknown negatives never veto.
+        assert result.qualified is True
+
+    def test_industry_unknown_is_penalized_not_dropped(self):
+        # The ICP names target industries, so an unconfirmed industry counts against
+        # the company (0.0, kept in the denominator) — the fix behind the
+        # figma/huggingface false positives (ADR-0015).
+        assessment = {
+            "industry": {"status": "unknown"},
+            "region": {"status": "match"},
+            "employee_count": {"value": None},  # size unknown -> dropped
+            "positive_signals": [
+                {"signal": "recent funding", "status": "match"},
+                {"signal": "hiring engineers", "status": "unknown"},
+            ],
+            "negative_signals": [],
+        }
+        result = run_qualification(_research(), _icp(), FakeLLM(assessment), _settings())
+        # industry 0(.35) + region 1(.15) + positives 1/2(.25*0.5); size dropped.
+        # = (0.15 + 0.125) / (0.35 + 0.15 + 0.25) = 0.3667
+        assert result.score == 0.3667
+        assert result.qualified is False
+
+    def test_industry_dropped_when_icp_names_no_industries(self):
+        # With no target industries, industry is irrelevant and an unknown is dropped.
+        icp = _icp(industries=[])
+        assessment = {
+            "industry": {"status": "unknown"},
+            "region": {"status": "match"},
+            "employee_count": {"value": 100},
+            "positive_signals": [
+                {"signal": "recent funding", "status": "match"},
+                {"signal": "hiring engineers", "status": "match"},
+            ],
+            "negative_signals": [],
+        }
+        result = run_qualification(_research(), icp, FakeLLM(assessment), _settings())
+        # industry dropped; size 1(.25) + region 1(.15) + positives 1(.25) all match -> 1.0
+        assert result.score == 1.0
         assert result.qualified is True
 
     def test_below_threshold_is_not_qualified(self):
@@ -155,6 +201,22 @@ class TestRunQualification:
         result = run_qualification(_research(), _icp(), FakeLLM(raises=True), _settings())
         assert result.score == 0.0
         assert result.qualified is False
+
+
+class TestContextCapGuard:
+    def test_large_facts_list_stays_under_context_cap(self):
+        from pitch_pilot.clients.llm import CONTEXT_TOKEN_CAP
+        from pitch_pilot.nodes.qualify import _QUALIFY_SYSTEM, _qualify_user_prompt
+
+        facts = [
+            Fact(claim=f"Acme fact number {i} about payments, fraud and growth at scale",
+                 source_url=f"https://acme.com/some/fairly/long/path/page-{i}",
+                 evidence="e", source_tier="own_site")
+            for i in range(500)
+        ]
+        prompt = _qualify_user_prompt(_icp(), facts)
+        est_tokens = (len(_QUALIFY_SYSTEM) + len(prompt)) / 4  # ~4 chars/token
+        assert est_tokens < CONTEXT_TOKEN_CAP
 
 
 class TestQualifyNodeAdapter:

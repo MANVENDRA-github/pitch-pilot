@@ -1,8 +1,8 @@
 # Nodes
 
-> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/nodes/`, `src/pitch_pilot/graph/state.py`
+> **Last updated:** 2026-06-14 · **Source files:** `src/pitch_pilot/nodes/`, `src/pitch_pilot/graph/state.py`
 >
-> P3 hardened the verify node (first-party tier + substring + LLM faithfulness judge) and made Policy B claim-gating the rule in the draft node.
+> P3 hardened the verify node and made Policy B claim-gating the rule in the draft node. **0.8.0** decoupled grounding from phrasing: the draft grounds by *selecting facts* (no verbatim-hook substring check), and verify judges the **body**'s faithfulness to the selected facts (see [ADR-0014](../decisions.md)).
 
 **Status: all five nodes implemented (research in P1; qualify, draft, verify, log in P2).** Each node lives in its own module under `src/pitch_pilot/nodes/`, and `build_pipeline()` wires them into the outer graph (see [`graph.md`](graph.md) and [`../pipeline.md`](../pipeline.md)). Every node follows the same shape: a pure `run_*(...)` function that takes its dependencies as arguments (trivially testable offline) plus a thin `*_node(state)` graph adapter that can be handed injected clients.
 
@@ -30,8 +30,8 @@ The `PipelineState` contract itself — including the `status` and `errors` book
 | --- | --- | --- | --- |
 | `research_node` | `company` | `research` (`ResearchResult`) | **Implemented (P1).** Runs the agentic research loop (seed → plan → search → extract Facts), bounded by `RESEARCH_MAX_QUERIES`. Tags each fact with a `source_tier`. |
 | `qualify_node` | `research`, `icp` | `qualification` (`QualificationResult`) | **Implemented (P2).** Hybrid: LLM assesses signals vs facts; deterministic code scores + vetoes. Conditional edge stops disqualified leads (→ log), sends qualified ones to draft. |
-| `draft_node` | `research`, `qualification` | `draft` (`Draft`) | **Implemented (P2).** Writes outreach only from grounded facts; tier-gates numerics; validates hooks back to facts. |
-| `verify_node` | `draft`, `research` | `verification` (`VerificationResult`) | **Hardened (P3).** A claim verifies only if first-party-sourced + substring-anchored + judged `faithful` by the LLM. Draft passes only if every claim verifies. Network-free except the judge call. |
+| `draft_node` | `research`, `qualification` | `draft` (`Draft`) | **Implemented (P2; 0.8.0 selection).** Writes free-prose outreach grounded only in first-party facts the model **selects by id**; `hooks_used` are those facts (grounded by construction). |
+| `verify_node` | `draft`, `research` | `verification` (`VerificationResult`) | **Hardened (P3; 0.8.0 body judge).** Re-resolves hooks to first-party facts (structural), then an LLM judge rates the **body**'s claims `faithful`/`overreach`/`unsupported` against the selected facts. Network-free except the judge call. |
 | `log_node` | whole `PipelineState` | persisted `Lead` | **Implemented (P2).** Saves `ready` / enqueues `review` / saves `disqualified` via the Store. Never auto-sends. |
 | `discover_node` | — (seed source) | candidate domains | Future seam (P6) that sources new candidate domains to seed runs. |
 
@@ -67,23 +67,30 @@ the control flow is not a fixed query list. One run proceeds as:
    result, run the extractor on its content (the result URL is the source).
 5. **Reflect.** De-duplicate by claim, accumulate facts, record the query, loop.
 
-The dimensions and caps are module constants in `nodes/research.py`:
-`RESEARCH_DIMENSIONS`, `MAX_FACTS_PER_SOURCE`, `SEARCH_RESULTS_PER_QUERY`, and
-`MAX_TEXT_CHARS`.
+**Research depth is tunable and leaned out by default** (cheaper, faster, and
+fits free-tier token caps — see [ADR-0012](../decisions.md)):
+`RESEARCH_MAX_QUERIES` (3), `RESEARCH_MAX_PAGE_CHARS` (3500 — the biggest token
+lever), and `RESEARCH_MAX_FACTS_PER_SOURCE` (5) are [`Settings`](../configuration.md)
+that `run_research` passes through to the extractor. `RESEARCH_DIMENSIONS` and
+`SEARCH_RESULTS_PER_QUERY` remain module constants; `MAX_TEXT_CHARS` /
+`MAX_FACTS_PER_SOURCE` survive only as lean fallback defaults for direct
+`extract_facts` calls.
 
 ### The extractor — the groundedness guard
 
-`extract_facts(text, source_url, source_title, llm, company_domain=None)` is where
-groundedness is enforced at research time. It prompts the model to return **only**
-claims the provided text explicitly supports, each with a verbatim `evidence`
-snippet, a `category`, and a `confidence`. The system prompt forbids using outside
-knowledge. Then, for every candidate, the extractor checks that the `evidence`
-actually appears in the source text (a whitespace- and case-insensitive substring
-match) and **drops** — and logs — any candidate that fails. Surviving facts are
-tagged with a `source_tier` via `classify_source_tier(url, company_domain)`. This
-is a cheap but effective anti-hallucination layer; see
-[groundedness.md](../groundedness.md). Extraction is capped at
-`MAX_FACTS_PER_SOURCE` per source so one page can't dominate.
+`extract_facts(text, source_url, source_title, llm, company_domain=None, *,
+max_page_chars=…, max_facts_per_source=…)` is where groundedness is enforced at
+research time. It first **truncates the source text to `max_page_chars`**, then
+prompts the model to return **only** claims that truncated text explicitly
+supports, each with a verbatim `evidence` snippet, a `category`, and a
+`confidence`. The system prompt forbids using outside knowledge. For every
+candidate, the extractor checks that the `evidence` actually appears in **that same
+truncated text** (a whitespace- and case-insensitive substring match) and
+**drops** — and logs — any candidate that fails: the model can only ground claims
+in the text we verify against, so truncation never weakens the guarantee. Surviving
+facts are tagged with a `source_tier` via `classify_source_tier(url,
+company_domain)`. Extraction stops after `max_facts_per_source` facts so one page
+can't dominate. See [groundedness.md](../groundedness.md).
 
 ### Robustness
 
@@ -110,52 +117,68 @@ and a summary line (facts, distinct sources, and the LLM-chosen queries that ran
 - The **LLM assesses**, for each ICP attribute (industry, region, employee count)
   and each positive/negative signal, whether the facts support it —
   `match` / `no_match` / `unknown`, citing the supporting fact. It does *not* decide
-  qualification.
+  qualification. Negative signals are judged from the company's described business
+  (so a negation like "not fintech" fires when the facts show design tools / dev infra
+  / ML hosting, rather than defaulting to `unknown` — [ADR-0015](../decisions.md)).
 - **Deterministic code scores.** A weighted blend of industry / size / region /
-  positive-signals yields a fit score in `[0, 1]`; *unknown* structural components
-  are dropped and the weights renormalized, so a research gap never penalizes.
-  Positive signals score as `matched / total`.
+  positive-signals yields a fit score in `[0, 1]`. *Size/region* unknowns are dropped
+  and the weights renormalized (a research gap there shouldn't penalize), but
+  **industry is required when the ICP names target industries**: an `unknown` or
+  `no_match` industry scores 0.0 and stays in the denominator, so a fintech ICP can't
+  qualify a company it can't place in-industry. Positive signals score as
+  `matched / total`.
 - **A matched negative signal is a hard veto** — it forces `qualified = False`
   regardless of score.
 - The company qualifies iff `score >= QUALIFY_THRESHOLD` and nothing vetoed.
 
 Unknowns are never guessed: an unknown signal appears in neither `matched_signals`
-nor `missed_signals`.
+nor `missed_signals`. The assessment call runs at `temperature=0` so the verdict (and
+the headline F1) is reproducible.
 
-## The draft node (Policy B since P3)
+## The draft node (Policy B since P3; selection since 0.8.0)
 
 `run_draft(research, qualification, llm, settings) -> Draft` writes the outreach
-email, with two groundedness enforcement layers (see
-[groundedness.md](../groundedness.md)):
+email, grounding it by **fact-selection** (see [groundedness.md](../groundedness.md)
+and [ADR-0014](../decisions.md)):
 
 - **First-party claim pool.** Only `own_site` / `authoritative` facts are offered
-  to the model as *claimable*. `third_party_snippet` facts are passed in a separate
-  *context-only* section — usable for tone or framing, never as a stated claim or a
-  hook. (P2 gated only hard numerics; P3's Policy B extends this to **all** claims.)
-- **Validated outputs.** Each hook the model returns is matched back to a claimable
-  fact; anything that doesn't map to one is discarded, so `hooks_used` is always a
-  subset of the first-party research facts.
+  to the model as *claimable*, on **numbered** lines. `third_party_snippet` facts are
+  passed in a separate *context-only* section — usable for tone or framing, never as
+  a stated claim. (P2 gated only hard numerics; P3's Policy B extends this to **all**
+  claims.)
+- **Selection by id, not by copy.** The model writes the body as free prose (it may
+  paraphrase) and returns the **ids** of the claimable facts it grounded the email
+  in. `hooks_used` is the canonical claim text of those facts — a subset of the
+  first-party research facts, grounded **by construction**. The draft layer does
+  **not** substring- or fuzzy-match hook text against the source.
+- **No id leakage in the prose.** The fact ids are a selection mechanism for
+  `facts_used` only; the prompt forbids them in the subject/body, and a regex
+  backstop (`_strip_fact_ids`) removes any `(Fact N)`-style token that slips through.
+- **Deterministic drafting.** The draft call runs at `temperature=0` for reproducible
+  output.
 
-## The verify node (P3 — the real gate)
+## The verify node (P3 hardening; 0.8.0 body-faithfulness)
 
-`run_verification(draft, research, llm, settings) -> VerificationResult` audits
-every claim (the draft's `hooks_used`) through four checks (see the
-[Groundedness methodology](../groundedness.md)). A claim is **verified** iff it is:
+`run_verification(draft, research, llm, settings) -> VerificationResult` audits the
+draft in two parts (see the [Groundedness methodology](../groundedness.md)):
 
-1. **backed** by a `Fact`;
-2. **first-party** — tier `own_site` or `authoritative` (Policy B; a
-   `third_party_snippet` backing is a hard `volatile-source` failure);
-3. **substring-anchored** — the backing fact carries verbatim `evidence`
-   (`substring_ok`); and
-4. **faithful** — `judge_faithfulness(claim, evidence, llm)` returns `faithful`
-   (or `overreach` when `FAITHFULNESS_STRICT` is off). The judge fails closed.
+1. **Structural — the grounding facts.** Each `hook_used` is re-resolved to a
+   first-party `Fact`; any that fails to resolve is a `structural` failure (an
+   invariant violation — hooks are first-party by construction).
+2. **Faithfulness — the body.** One LLM judge (`judge_body`, run at `temperature=0`)
+   reads the draft **body** and the selected facts, extracts every factual claim the
+   body makes about the company, and rates each `faithful` / `overreach` /
+   `unsupported`. The judge fails closed (any error or malformed response fails the
+   draft).
 
-The draft **passes only if every claim verifies.** Each failure is recorded in
-`flagged_claims` with its reason (`unbacked` / `volatile-source` / `not-substring`
-/ `overreach` / `unsupported`), and the per-claim audit trail is returned in
-`VerificationResult.claim_verdicts`, alongside `groundedness_score`,
-`faithfulness_score`, and `tier_breakdown`. The node is **network-free except for
-the judge call** — independent live re-verification of sources is an eval-time
+The draft **passes** iff it has a grounded hook, a non-empty body, the judge ran,
+and no body claim is `unsupported` (and none is `overreach` under
+`FAITHFULNESS_STRICT`). Each failure is recorded in `flagged_claims` with its reason
+(`structural` / `overreach` / `unsupported` / `judge-error`); the per-body-claim
+audit trail is returned in `VerificationResult.claim_verdicts`, alongside
+`groundedness_score` (faithful body claims / total), `faithfulness_score`, and
+`tier_breakdown` (the grounding hooks by tier). The node is **network-free except
+for the judge call** — independent live re-verification of sources is an eval-time
 metric (P4), not part of the per-run path.
 
 ## The log node (P2)

@@ -1,34 +1,38 @@
-"""The verify node — the real groundedness gate over a draft (P3).
+"""The verify node — the real groundedness gate over a draft (0.8.0).
 
 This is the enforcement point for the hero guarantee, applied to the finished
-draft: **every claim the draft stands on must be first-party-sourced,
-substring-anchored, and judged to be faithfully supported by its evidence.** A
-claim is *verified* only when all four hold:
+draft. Release 0.8.0 splits the check into a **structural** part (cheap, by construction) and
+a **faithfulness** part (an LLM judge over the body), reflecting that source-text
+grounding now lives at *extraction*, not here (see ADR-0014):
 
-1. **Backed** — the claim maps to a real `Fact` in the research.
-2. **First-party tier** — that fact is ``own_site`` or ``authoritative`` (Policy B:
-   a stated claim may never rest on a ``third_party_snippet`` fact).
-3. **Substring-anchored** — the fact carries a verbatim ``evidence`` snippet (the
-   extraction-time substring guard held; recorded on the fact).
-4. **Faithful** — an LLM judge rates the claim↔evidence pair ``"faithful"`` (or
-   ``"overreach"`` when ``FAITHFULNESS_STRICT`` is off). This is *distinct* from the
-   substring check: substring proves the evidence is present, the judge decides
-   whether it actually *supports* the claim as stated.
+1. **Structural — grounding facts.** Every ``hook_used`` must resolve to a
+   first-party (``own_site`` / ``authoritative``) `Fact` in the research. This is
+   true *by construction* (the draft node only selects such facts by id); the gate
+   re-resolves and asserts it, recording any hook that fails to resolve as a
+   ``structural`` failure (it must never happen).
+2. **Faithfulness — the body.** A single LLM judge reads the draft **body** and the
+   set of selected facts, extracts every factual claim the body makes *about the
+   company*, and rates each ``faithful`` / ``overreach`` / ``unsupported`` against
+   those facts. This judges *support*, which a substring check cannot: a fact can be
+   genuinely sourced yet not back a particular paraphrase in the body.
 
-The draft **passes only if every claim is verified.** Each claim that fails is
-recorded with its specific reason (``unbacked`` / ``volatile-source`` /
-``not-substring`` / ``overreach`` / ``unsupported``), and a full per-claim audit
-trail is returned in `VerificationResult.claim_verdicts`.
+The draft **passes** only if: there is at least one grounded hook, the body is
+non-empty, there are no structural failures, the judge call succeeded, and **no body
+claim is ``unsupported``** (and none is ``overreach`` when ``FAITHFULNESS_STRICT``).
+Each failing claim is recorded with its reason (``structural`` / ``overreach`` /
+``unsupported`` / ``judge-error``), and a full per-claim audit trail is returned in
+`VerificationResult.claim_verdicts`.
 
-The node is **network-free except for the LLM judge call** — it does not re-fetch
-sources. Independent live re-verification of each source is an *eval-time* metric
-(P4), reported separately by tier, not part of the per-run hot path (see ADR-0010
-in the decisions log).
+The node is **network-free except for the single LLM judge call** — it does not
+re-fetch sources. Independent live re-verification of each source is an *eval-time*
+metric (P4), reported separately by tier (see ADR-0010 in the decisions log).
 """
 
 from __future__ import annotations
 
 import logging
+import re
+from collections import Counter
 
 from pitch_pilot.clients.llm import LLMClient, LLMError, get_llm_client
 from pitch_pilot.config import Settings, get_settings
@@ -41,102 +45,140 @@ from pitch_pilot.nodes.research import _normalize
 
 logger = logging.getLogger(__name__)
 
-# Tiers a stated claim may rest on (Policy B). A claim backed only by a
-# third_party_snippet fact is a policy violation, not merely a soft flag.
+# Tiers a stated claim may rest on (Policy B). A hook that resolves to anything else
+# is a structural violation, not merely a soft flag.
 _FIRST_PARTY_TIERS = {"own_site", "authoritative"}
-_TIER_RANK = {"own_site": 0, "authoritative": 1, "third_party_snippet": 2}
+_TIER_RANK = {"own_site": 0, "authoritative": 1}
+
+# Gate-critical call: judge deterministically so a draft's verdict is reproducible.
+_JUDGE_TEMPERATURE = 0.0
 
 _FAITHFULNESS_SYSTEM = (
-    "You are a strict groundedness judge for an SDR agent. You are given a CLAIM "
-    "and an EVIDENCE snippet copied verbatim from a source. Decide ONLY whether the "
-    "EVIDENCE supports the CLAIM — never use outside knowledge.\n\n"
+    "You are a strict groundedness judge for an SDR agent. You are given the BODY of "
+    "a cold outreach email and a NUMBERED list of FACTS (each copied from a source, "
+    "with its verbatim evidence). Identify every factual assertion the BODY makes "
+    "ABOUT THE COMPANY (the recipient). Ignore greetings, questions, the sender's own "
+    "product or pitch, and generic pleasantries. For each company claim decide ONLY "
+    "from the FACTS whether it is supported — never use outside knowledge.\n\n"
     "Verdicts:\n"
-    "- 'faithful': the EVIDENCE directly supports the CLAIM as stated.\n"
-    "- 'overreach': the EVIDENCE partially supports it, but the CLAIM generalizes, "
-    "exaggerates, or adds beyond what the EVIDENCE actually says.\n"
-    "- 'unsupported': the EVIDENCE does not support the CLAIM.\n\n"
-    'Respond with a JSON object: {"verdict": "faithful"|"overreach"|"unsupported", '
-    '"reason": "<one short sentence>"}'
+    "- 'faithful': a FACT directly supports the claim as stated.\n"
+    "- 'overreach': a FACT partially supports it, but the claim generalizes, "
+    "exaggerates, or adds beyond what the FACT actually says.\n"
+    "- 'unsupported': no FACT supports the claim.\n\n"
+    "For each claim also return 'fact_id': the id of the supporting FACT (or null when "
+    "unsupported).\n\n"
+    'Respond with a JSON object: {"claims": [{"claim": "...", "verdict": '
+    '"faithful"|"overreach"|"unsupported", "fact_id": <id|null>, "reason": '
+    '"<one short sentence>"}]}'
 )
 
 
-def judge_faithfulness(claim: str, evidence: str, llm: LLMClient) -> dict:
-    """Ask the LLM whether ``evidence`` actually supports ``claim``.
+def _as_id(item: object) -> int | None:
+    """Coerce a model-returned fact reference into a 1-based id, or ``None``."""
+    if isinstance(item, bool):
+        return None
+    if isinstance(item, int):
+        return item
+    if isinstance(item, str):
+        match = re.fullmatch(r"\s*\[?(\d+)\]?\s*", item)
+        if match:
+            return int(match.group(1))
+    return None
 
-    This judges *support*, which the substring check cannot: the evidence can be a
-    genuine verbatim snippet yet still not back the claim (or back a weaker version
-    of it). Fails **closed** — any judge error returns ``"unsupported"`` so a flaky
-    model never lets an unverified claim through.
+
+def judge_body(body: str, selected: list[Fact], llm: LLMClient) -> tuple[bool, list[dict]]:
+    """Judge the draft ``body``'s claims for faithfulness against the selected facts.
+
+    One LLM call: the judge extracts each factual claim the body makes about the
+    company and rates it against the selected facts, naming the supporting fact by id.
+    Fails **closed** — any judge error or malformed response returns ``ok=False`` so a
+    flaky model never lets an unjudged body pass the gate.
 
     Args:
-        claim: The draft claim under audit.
-        evidence: The verbatim evidence snippet from the backing fact.
+        body: The draft body to audit.
+        selected: The first-party facts the draft is grounded in (ids are 1-based).
         llm: LLM client used for the judgement.
 
     Returns:
-        A dict ``{"verdict": "faithful"|"overreach"|"unsupported", "reason": str}``.
+        ``(ok, claims)`` where ``ok`` is whether the judge call succeeded and
+        ``claims`` is a list of ``{"claim", "verdict", "fact", "reason"}`` dicts
+        (``fact`` is the resolved `Fact` or ``None``).
     """
-    user = f"CLAIM: {claim}\n\nEVIDENCE: {evidence}"
+    facts_block = "\n".join(
+        f"[{i}] {fact.claim}" + (f" — evidence: {fact.evidence}" if fact.evidence else "")
+        for i, fact in enumerate(selected, start=1)
+    )
+    user = f"BODY:\n{body}\n\nFACTS:\n{facts_block}"
     try:
-        payload = llm.complete_json(_FAITHFULNESS_SYSTEM, user)
+        payload = llm.complete_json(_FAITHFULNESS_SYSTEM, user, temperature=_JUDGE_TEMPERATURE)
     except LLMError as exc:
-        logger.warning("faithfulness judge failed for claim %r: %s", claim, exc)
-        return {"verdict": "unsupported", "reason": f"judge call failed: {exc}"}
-    verdict = str(payload.get("verdict", "")).strip().lower()
-    if verdict not in {"faithful", "overreach", "unsupported"}:
-        verdict = "unsupported"
-    return {"verdict": verdict, "reason": str(payload.get("reason", "")).strip()}
+        logger.warning("body faithfulness judge failed: %s", exc)
+        return False, []
+
+    raw = payload.get("claims")
+    if not isinstance(raw, list):
+        logger.warning("body faithfulness judge returned no 'claims' list: %r", payload)
+        return False, []
+
+    claims: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        claim = str(item.get("claim", "")).strip()
+        if not claim:
+            continue
+        verdict = str(item.get("verdict", "")).strip().lower()
+        if verdict not in {"faithful", "overreach", "unsupported"}:
+            verdict = "unsupported"
+        fact: Fact | None = None
+        fid = _as_id(item.get("fact_id"))
+        if verdict != "unsupported" and fid is not None and 1 <= fid <= len(selected):
+            fact = selected[fid - 1]
+        claims.append({"claim": claim, "verdict": verdict, "fact": fact,
+                       "reason": str(item.get("reason", "")).strip()})
+    return True, claims
 
 
-def _candidate_facts(claim: str, facts: list[Fact]) -> list[Fact]:
-    """Facts whose claim matches ``claim`` (normalized), highest-tier first.
+def _first_party_by_claim(facts: list[Fact]) -> dict[str, Fact]:
+    """Map each first-party fact's normalized claim to its best-tier fact.
 
-    Unlike a pure backing check this ignores evidence, so a claim backed by a fact
-    with *no* evidence still resolves to a candidate — and then fails the substring
-    check rather than being reported as unbacked. Within a tier, facts that carry
-    evidence sort first.
+    Within a claim, the highest tier wins (own_site over authoritative) and, at the
+    same tier, a fact carrying evidence is preferred.
     """
-    key = _normalize(claim)
-    matches = [f for f in facts if _normalize(f.claim) == key]
-    return sorted(
-        matches,
-        key=lambda f: (_TIER_RANK.get(f.source_tier, 3), 0 if f.evidence else 1),
-    )
+    best: dict[str, Fact] = {}
+    for fact in facts:
+        if fact.source_tier not in _FIRST_PARTY_TIERS:
+            continue
+        key = _normalize(fact.claim)
+        current = best.get(key)
+        rank = (_TIER_RANK[fact.source_tier], 0 if fact.evidence else 1)
+        if current is None or rank < (_TIER_RANK[current.source_tier], 0 if current.evidence else 1):
+            best[key] = fact
+    return best
 
 
-def _verify_claim(claim: str, facts: list[Fact], llm: LLMClient, strict: bool) -> tuple[ClaimVerdict, str]:
-    """Audit one claim; return its `ClaimVerdict` and a status string.
+def _resolve_hooks(hooks: list[str], facts: list[Fact]) -> tuple[list[Fact], list[str]]:
+    """Resolve each hook to a first-party `Fact`; report any that fail to resolve.
 
-    Status is ``"verified"`` or one of the failure reasons ``unbacked`` /
-    ``volatile-source`` / ``not-substring`` / ``overreach`` / ``unsupported``. The
-    faithfulness judge is only called once a claim is backed by a first-party fact
-    with evidence — there is nothing to judge otherwise.
+    Hooks are first-party grounded facts by construction (the draft node only selects
+    such facts). This re-resolves them and records any hook that does not map to a
+    first-party fact as a ``structural`` failure — the invariant should hold, so a
+    failure here means an upstream bug, not a model mistake.
     """
-    candidates = _candidate_facts(claim, facts)
-    if not candidates:
-        return ClaimVerdict(claim=claim, substring_ok=False), "unbacked"
-
-    chosen = candidates[0]
-    verdict = ClaimVerdict(
-        claim=claim,
-        fact_used=chosen.claim,
-        source_url=chosen.source_url,
-        tier=chosen.source_tier,
-        substring_ok=bool(chosen.evidence),
-    )
-
-    if chosen.source_tier not in _FIRST_PARTY_TIERS:
-        return verdict, "volatile-source"
-    if not verdict.substring_ok:
-        return verdict, "not-substring"
-
-    faithfulness = judge_faithfulness(claim, chosen.evidence, llm)["verdict"]
-    verdict.faithfulness = faithfulness  # type: ignore[assignment]
-    if faithfulness == "faithful":
-        return verdict, "verified"
-    if faithfulness == "overreach":
-        return verdict, ("overreach" if strict else "verified")
-    return verdict, "unsupported"
+    by_claim = _first_party_by_claim(facts)
+    selected: list[Fact] = []
+    failures: list[str] = []
+    seen: set[str] = set()
+    for hook in hooks:
+        fact = by_claim.get(_normalize(hook))
+        if fact is None:
+            failures.append(hook)
+            continue
+        if fact.claim in seen:
+            continue
+        seen.add(fact.claim)
+        selected.append(fact)
+    return selected, failures
 
 
 def run_verification(
@@ -145,47 +187,90 @@ def run_verification(
     llm: LLMClient,
     settings: Settings,
 ) -> VerificationResult:
-    """Audit a draft's claims and decide whether it passes the groundedness gate.
+    """Audit a draft and decide whether it passes the groundedness gate.
 
-    Each claim in ``draft.hooks_used`` is audited by `_verify_claim`. The draft
-    passes only if there is at least one claim and **every** claim is verified.
-    Scores are reported even when the draft passes (see the groundedness
-    methodology docs for definitions).
+    Resolves the draft's hooks to first-party facts (structural), then runs a single
+    faithfulness judge over the body against those facts. The draft passes only if it
+    has a grounded hook, a non-empty body, no structural failure, a successful judge
+    call, and no ``unsupported`` body claim (and no ``overreach`` when
+    ``faithfulness_strict``). See the groundedness methodology docs for the metric
+    definitions.
 
     Args:
-        draft: The `Draft` to audit (its ``hooks_used`` are the claims checked).
+        draft: The `Draft` to audit (``hooks_used`` are the grounding facts; ``body``
+            is what the judge evaluates).
         research: The research providing the grounding facts.
         llm: LLM client used for the faithfulness judge.
         settings: Settings supplying ``faithfulness_strict``.
 
     Returns:
-        A `VerificationResult` with the per-claim verdicts, the groundedness and
-        faithfulness scores, the tier breakdown, the flagged failures, and the
-        pass/fail decision.
+        A `VerificationResult` with the per-body-claim verdicts, the groundedness and
+        faithfulness scores, the tier breakdown of the grounding facts, the flagged
+        failures, and the pass/fail decision.
     """
     facts = list(research.facts) if research else []
-    claims = list(draft.hooks_used) if draft else []
-    total = len(claims)
+    hooks = list(draft.hooks_used) if draft else []
+    body = (draft.body if draft else "") or ""
+    strict = settings.faithfulness_strict
+
+    selected, structural_failures = _resolve_hooks(hooks, facts)
+    tier_breakdown = dict(Counter(fact.source_tier for fact in selected))
+
+    ok, judged = (True, [])
+    if selected and body.strip():
+        ok, judged = judge_body(body, selected, llm)
 
     verdicts: list[ClaimVerdict] = []
-    flagged: list[str] = []
-    tier_breakdown: dict[str, int] = {}
-    verified = 0
+    flagged: list[str] = [f"structural: {hook}" for hook in structural_failures]
     faithful = 0
-    for claim in claims:
-        verdict, status = _verify_claim(claim, facts, llm, settings.faithfulness_strict)
-        verdicts.append(verdict)
-        tier_breakdown[verdict.tier or "unbacked"] = tier_breakdown.get(verdict.tier or "unbacked", 0) + 1
-        if verdict.faithfulness == "faithful":
+    verified = 0
+    for jc in judged:
+        verdict = jc["verdict"]
+        fact: Fact | None = jc["fact"]
+        verdicts.append(ClaimVerdict(
+            claim=jc["claim"],
+            fact_used=fact.claim if fact else None,
+            source_url=fact.source_url if fact else None,
+            tier=fact.source_tier if fact else None,
+            substring_ok=bool(fact and fact.evidence),
+            faithfulness=verdict,  # type: ignore[arg-type]
+        ))
+        if verdict == "faithful":
             faithful += 1
-        if status == "verified":
             verified += 1
+        elif verdict == "overreach":
+            if strict:
+                flagged.append(f"overreach: {jc['claim']}")
+            else:
+                verified += 1
         else:
-            flagged.append(f"{status}: {claim}")
+            flagged.append(f"unsupported: {jc['claim']}")
 
-    groundedness_score = round(verified / total, 4) if total else 0.0
-    faithfulness_score = round(faithful / total, 4) if total else 0.0
-    passed = total > 0 and verified == total
+    total = len(judged)
+    judge_failed = bool(selected) and bool(body.strip()) and not ok
+    if judge_failed:
+        flagged.append("judge-error: faithfulness judge failed")
+
+    if not selected or not body.strip() or judge_failed:
+        groundedness_score = 0.0
+        faithfulness_score = 0.0
+    elif total == 0:
+        # A grounded draft whose body makes no checkable company claim: nothing is
+        # unfaithful, so it is vacuously grounded.
+        groundedness_score = 1.0
+        faithfulness_score = 1.0
+    else:
+        groundedness_score = round(verified / total, 4)
+        faithfulness_score = round(faithful / total, 4)
+
+    passed = (
+        bool(selected)
+        and bool(body.strip())
+        and not structural_failures
+        and not judge_failed
+        and all(v.faithfulness != "unsupported" for v in verdicts)
+        and (not strict or all(v.faithfulness != "overreach" for v in verdicts))
+    )
 
     return VerificationResult(
         groundedness_score=groundedness_score,

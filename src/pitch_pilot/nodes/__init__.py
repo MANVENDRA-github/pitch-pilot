@@ -11,9 +11,9 @@ Implemented:
       ``QualificationResult`` (P2).
     * ``draft_node`` / `run_draft` — write grounded outreach from facts →
       ``Draft`` (P2).
-    * ``verify_node`` / `run_verification` / `judge_faithfulness` — the groundedness
-      gate over a draft (first-party tier + substring + LLM faithfulness judge) →
-      ``VerificationResult`` (P2 basic gate, hardened in P3).
+    * ``verify_node`` / `run_verification` / `judge_body` — the groundedness gate
+      over a draft (structural first-party hook check + LLM body-faithfulness judge)
+      → ``VerificationResult`` (P2 basic gate, hardened in P3, decoupled in P5).
     * ``log_node`` / `log_lead` — persist the lead + enqueue it for human review
       (P2).
 
@@ -30,7 +30,7 @@ from pitch_pilot.nodes.research import (
     research_node,
     run_research,
 )
-from pitch_pilot.nodes.verify import judge_faithfulness, run_verification, verify_node
+from pitch_pilot.nodes.verify import judge_body, run_verification, verify_node
 
 __all__ = [
     "run_research",
@@ -43,7 +43,7 @@ __all__ = [
     "draft_node",
     "run_verification",
     "verify_node",
-    "judge_faithfulness",
+    "judge_body",
     "log_lead",
     "log_node",
 ]

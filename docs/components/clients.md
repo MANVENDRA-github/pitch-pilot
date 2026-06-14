@@ -1,6 +1,8 @@
 # Clients
 
-> **Last updated:** 2026-06-13 · **Source files:** `src/pitch_pilot/clients/`
+> **Last updated:** 2026-06-14 · **Source files:** `src/pitch_pilot/clients/`
+>
+> P4-era: a Cerebras provider was added so the eval can run on its ~1M tokens/day free tier (see ADR-0013).
 
 The `clients` package is pitch-pilot's swappable external-service layer. Every call that leaves the process — an LLM completion, a web search, an HTTP page fetch — goes through a small interface defined here. The rest of the pipeline depends on those interfaces, never on a vendor SDK, so providers can be swapped by configuration and the network can be mocked at a single seam in tests.
 
@@ -12,7 +14,7 @@ There are three concerns, each with its own interface:
 | Web search | `SearchClient` (Protocol) | `TavilyClient` | `get_search_client()` |
 | Page fetch | `fetch_page()` (plain function) | httpx + selectolax | — |
 
-All three are re-exported from the package root (`pitch_pilot.clients`), alongside `GroqClient`, `LLMError`, and `LLMJSONError`. See the API Reference (in the nav) for full signatures.
+All three are re-exported from the package root (`pitch_pilot.clients`), alongside `GroqClient`, `CerebrasClient`, `LLMError`, and `LLMJSONError`. See the API Reference (in the nav) for full signatures.
 
 ## Lazy SDK imports
 
@@ -20,6 +22,7 @@ Every concrete client imports its vendor SDK **lazily**, inside the method that 
 
 - `GeminiClient` imports `from google import genai` (and `google.genai.types`) only when it builds its client or makes a call.
 - `GroqClient` imports `from groq import Groq` only on first use.
+- `CerebrasClient` imports `from cerebras.cloud.sdk import Cerebras` only on first use.
 - `TavilyClient` imports `from tavily import TavilyClient` only on first use.
 
 Two consequences follow, and they are the reason for the pattern:
@@ -35,8 +38,12 @@ Each client also caches its underlying SDK client after first construction (an `
 
 | Method | Returns | Notes |
 | --- | --- | --- |
-| `complete(system, user)` | `str` | Free-text completion, stripped of surrounding whitespace. |
-| `complete_json(system, user)` | `dict` | A parsed JSON **object**. Raises `LLMJSONError` on bad JSON. |
+| `complete(system, user, temperature=None)` | `str` | Free-text completion, stripped of surrounding whitespace. |
+| `complete_json(system, user, temperature=None)` | `dict` | A parsed JSON **object**. Raises `LLMJSONError` on bad JSON. |
+
+`temperature` is optional (the provider default when `None`); it is sent only when
+set, so it stays backward-compatible. Gate-critical calls (draft, verify judge) pass
+`0.0` for reproducible output.
 
 Both take a `system` prompt (role/behavior) and a `user` prompt (the request). The error hierarchy is `LLMError(RuntimeError)` with `LLMJSONError(LLMError)` for JSON-parse failures specifically.
 
@@ -58,13 +65,18 @@ It raises `LLMJSONError` when the text is empty, is not valid JSON, or parses to
 
 **`GroqClient`** — backed by the official Groq SDK, which is OpenAI-compatible. Both methods call `client.chat.completions.create(...)` with `system` and `user` messages. `complete_json` sets `response_format={"type": "json_object"}` and, because Groq's JSON mode *requires* an explicit instruction, injects a "respond with a single valid JSON object" line into the system message (the shared `_json_system` helper). Default model: `llama-3.1-8b-instant`.
 
+**`CerebrasClient`** — backed by the `cerebras-cloud-sdk` (OpenAI-compatible, base URL `https://api.cerebras.ai/v1`). It mirrors `GroqClient` exactly — same `chat.completions.create(...)` call, same `response_format` + `_json_system` for `complete_json`, same lenient parsing. **Why it exists:** budget. The full eval needs many tokens, and Cerebras's free tier allows ~1M tokens/day (~10x Groq's ~100k), enough to run the whole eval set in one session (see [Evaluation](../evals.md) and [ADR-0013](../decisions.md)). Default model: `gpt-oss-120b` — **available models vary by account/tier** (check the SDK's `models.list()`); Llama-3.3-70B is not on every free-tier account. **Context cap:** its free tier limits a single request to **8,192 tokens**; prompt builders bound their variable-length payloads via `trim_to_token_budget` / `CONTEXT_TOKEN_CAP` so no request exceeds it.
+
 ### Factory: `get_llm_client()`
 
 `get_llm_client(settings=None)` selects the provider from `Settings.llm_provider` (defaulting to the cached process settings when none is passed):
 
 - `gemini` → `GeminiClient(api_key=gemini_api_key, model=gemini_model)`.
 - `groq` → `GroqClient(api_key=groq_api_key, model=groq_model)`, but raises `ValueError` if `GROQ_API_KEY` is not set.
+- `cerebras` → `CerebrasClient(api_key=cerebras_api_key, model=cerebras_model)`, but raises `ValueError` if `CEREBRAS_API_KEY` is not set.
 - Anything else → `ValueError` naming the unknown provider.
+
+`Settings.active_model` resolves the model id for the current provider (used by the smoke check and the eval report so the right model is named).
 
 Provider name and model defaults are validated in [`configuration.md`](../configuration.md); `llm_provider` is normalized to lowercase and restricted to `gemini` or `groq` at config-load time.
 

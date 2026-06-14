@@ -174,6 +174,56 @@ class TestExtractor:
         facts = extract_facts(text, "https://acme.com", None, llm)
         assert len(facts) == research_module.MAX_FACTS_PER_SOURCE
 
+    def test_page_text_truncated_to_cap_before_extraction(self):
+        # The model must only see (and be able to ground in) the truncated text.
+        long_text = "ALPHA z " * 100 + " OMEGA"
+        captured: dict = {}
+
+        class CapturingLLM:
+            def complete(self, system, user):  # pragma: no cover - unused
+                return ""
+
+            def complete_json(self, system, user):
+                captured["text"] = user.split("TEXT:\n", 1)[1]
+                return {"facts": [{"claim": "a", "evidence": "ALPHA", "category": "overview", "confidence": 0.9}]}
+
+        facts = extract_facts(long_text, "https://acme.com", None, CapturingLLM(), "acme.com",
+                              max_page_chars=12)
+        assert len(captured["text"]) <= 12          # truncated before extraction
+        assert "OMEGA" not in captured["text"]      # tail beyond the cap is gone
+        assert len(facts) == 1                       # evidence within the cap survives
+
+    def test_evidence_beyond_cap_is_dropped(self):
+        # Grounding runs against the truncated text, so a claim whose evidence lives
+        # past the cap is dropped — truncation does not weaken the guarantee.
+        text = "ALPHA marker " + "x" * 200 + " SECRET"
+
+        class LLM:
+            def complete(self, system, user):  # pragma: no cover - unused
+                return ""
+
+            def complete_json(self, system, user):
+                return {"facts": [{"claim": "secret", "evidence": "SECRET", "category": "overview", "confidence": 0.9}]}
+
+        facts = extract_facts(text, "https://acme.com", None, LLM(), "acme.com", max_page_chars=20)
+        assert facts == []
+
+    def test_max_facts_per_source_param_overrides_default(self):
+        text = " ".join(f"S{i} is stated." for i in range(10))
+
+        class LLM:
+            def complete(self, system, user):  # pragma: no cover - unused
+                return ""
+
+            def complete_json(self, system, user):
+                return {"facts": [
+                    {"claim": f"c{i}", "evidence": f"S{i} is stated.", "category": "overview", "confidence": 0.5}
+                    for i in range(10)
+                ]}
+
+        facts = extract_facts(text, "https://acme.com", None, LLM(), "acme.com", max_facts_per_source=3)
+        assert len(facts) == 3
+
 
 class TestRunResearch:
     def test_every_fact_has_http_source_and_evidence(self, monkeypatch):

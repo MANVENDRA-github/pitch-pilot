@@ -1,0 +1,37 @@
+> **Run date:** 2026-06-14 · **Model:** `cerebras/gpt-oss-120b` · **Source:** `evals/run_eval.py`
+
+# pitch-pilot eval — 2026-06-14
+
+> **Labels are human-proposed** (see `examples/eval_companies.json` and the rubric in `docs/evals.md`). Verify before trusting these numbers.
+
+## Aggregates
+
+- **Companies:** 17 evaluated, 0 error(s) of 17
+- **Qualification:** accuracy 0.9412, precision 1.0, recall 0.9, F1 0.9474 (tp=9, fp=0, tn=7, fn=1)
+- **Draft gate pass-rate:** 7/9 = 0.7778
+- **Mean groundedness:** 0.95 · **mean faithfulness:** 0.95 (over 9 drafts)
+- **Failure modes:** {'unsupported': 1, 'overreach': 1, 'structural': 0, 'judge-error': 0}
+- **Facts/company by category (degradation):** {'bad_fit': 54.5, 'good_fit': 61.75, 'sparse': 50.33}
+- **Live re-verifiability by tier:** own_site 0.9231 (36/39)
+
+## Per-company
+
+| domain | category | label (truth) | predicted | score | draft | grounded | faithful | facts |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ramp.com` | good_fit | qualified | not_qualified | 0.2833 | — | None | None | 68 |
+| `brex.com` | good_fit | qualified | qualified | 0.75 | pass | 1.0 | 1.0 | 60 |
+| `mercury.com` | good_fit | qualified | qualified | 0.8333 | fail | 0.8 | 0.8 | 64 |
+| `checkout.com` | good_fit | qualified | qualified | 0.625 | pass | 1.0 | 1.0 | 56 |
+| `plaid.com` | good_fit | qualified | qualified | 1.0 | pass | 1.0 | 1.0 | 65 |
+| `razorpay.com` | good_fit | qualified | qualified | 0.8333 | fail | 0.75 | 0.75 | 59 |
+| `monzo.com` | good_fit | qualified | qualified | 0.6667 | pass | 1.0 | 1.0 | 57 |
+| `wise.com` | good_fit | qualified | qualified | 0.8333 | pass | 1.0 | 1.0 | 65 |
+| `notion.so` | bad_fit | not_qualified | not_qualified | 0.1042 | — | None | None | 56 |
+| `figma.com` | bad_fit | not_qualified | not_qualified | 0.2833 | — | None | None | 60 |
+| `linear.app` | bad_fit | not_qualified | not_qualified | 0.2833 | — | None | None | 55 |
+| `vercel.com` | bad_fit | not_qualified | not_qualified | 0.2 | — | None | None | 56 |
+| `huggingface.co` | bad_fit | not_qualified | not_qualified | 0.2833 | — | None | None | 44 |
+| `jpmorganchase.com` | bad_fit | not_qualified | not_qualified | 0.75 | — | None | None | 56 |
+| `nilenso.com` | sparse | not_qualified | not_qualified | 0.6667 | — | None | None | 47 |
+| `fampay.in` | sparse | qualified | qualified | 0.9167 | pass | 1.0 | 1.0 | 51 |
+| `jupiter.money` | sparse | qualified | qualified | 0.9167 | pass | 1.0 | 1.0 | 53 |
