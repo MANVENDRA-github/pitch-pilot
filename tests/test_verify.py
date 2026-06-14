@@ -60,11 +60,12 @@ class FakeJudge:
         self.malformed = malformed
         self.calls: list[str] = []
 
-    def complete(self, system, user):  # pragma: no cover - unused
+    def complete(self, system, user, temperature=None):  # pragma: no cover - unused
         return "OK"
 
-    def complete_json(self, system, user):
+    def complete_json(self, system, user, temperature=None):
         self.calls.append(user)
+        self.temperature = temperature
         if self.raises:
             raise LLMError("judge down")
         if self.malformed:
@@ -190,11 +191,16 @@ class TestGate:
         assert result.tier_breakdown == {"own_site": 2}
         assert result.passed is False
 
+    def test_judge_uses_zero_temperature(self):
+        judge = FakeJudge([{"claim": "c", "verdict": "faithful", "fact_id": 1}])
+        run_verification(_draft("Acme builds developer tools"), _research([_OWN]), judge, _settings())
+        assert judge.temperature == 0.0
+
 
 class TestJudgeBody:
     def test_unknown_verdict_defaults_to_unsupported(self):
         class Weird:
-            def complete_json(self, s, u):
+            def complete_json(self, s, u, temperature=None):
                 return {"claims": [{"claim": "c", "verdict": "banana", "fact_id": 1}]}
         ok, claims = judge_body("body", [_OWN], Weird())
         assert ok is True
@@ -203,14 +209,14 @@ class TestJudgeBody:
 
     def test_judge_failure_returns_not_ok(self):
         class Boom:
-            def complete_json(self, s, u):
+            def complete_json(self, s, u, temperature=None):
                 raise LLMError("down")
         ok, claims = judge_body("body", [_OWN], Boom())
         assert ok is False and claims == []
 
     def test_resolves_fact_id_to_fact(self):
         class Good:
-            def complete_json(self, s, u):
+            def complete_json(self, s, u, temperature=None):
                 return {"claims": [{"claim": "c", "verdict": "faithful", "fact_id": 2}]}
         ok, claims = judge_body("body", [_OWN, _OWN2], Good())
         assert ok is True
