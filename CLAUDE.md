@@ -20,6 +20,7 @@ auto-sends, and LinkedIn scraping is out of scope.
 | `tests/` | Unit tests — **no network** |
 | `docs/` + `mkdocs.yml` | Documentation site (this file governs it) |
 | `evals/` | Offline evaluation harness (P4) |
+| `app/` | Placeholder for the human-review front-end over the review queue (not built) |
 
 ## Conventions
 
