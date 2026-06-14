@@ -1,6 +1,6 @@
 # Decisions (ADR log)
 
-> **Last updated:** 2026-06-13 · **Source files:** project-wide
+> **Last updated:** 2026-06-14 · **Source files:** project-wide
 
 Architecture Decision Records — one entry per significant decision, with the
 context that motivated it and the consequences we accept. Newest decisions are
@@ -297,6 +297,16 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   which can lower recall on facts buried deep in a long page; we accept that for the
   cost/latency/quota win and because the highest-value facts are near the top of a
   company's own pages. The caps are env-tunable for runs that want more depth.
+- **Update (2026-06-14):** The `RESEARCH_MAX_QUERIES` 4 → 3 part of this decision was
+  a **Groq-quota** choice (100k tokens/day) that was **never actually shipped** — the
+  project moved to **Cerebras** (~1M tokens/day, the evaluated and shipped provider —
+  [ADR-0013](#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier)),
+  where a 4th query is easily affordable, and the eval tables and README demos were
+  in fact run at **4**. To remove the eval-vs-default mismatch, the **default query
+  budget is now 4** (the depth everything actually uses). The other lean levers —
+  `RESEARCH_MAX_PAGE_CHARS` (3500, the dominant token lever) and
+  `RESEARCH_MAX_FACTS_PER_SOURCE` (5) — are unchanged; depth stays lean where it
+  matters for cost, and `RESEARCH_MAX_QUERIES` is still env-tunable.
 
 ## ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier
 
