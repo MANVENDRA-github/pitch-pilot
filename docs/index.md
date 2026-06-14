@@ -1,6 +1,6 @@
 # pitch-pilot
 
-> **Last updated:** 2026-06-05 · **Source files:** `README.md`, `src/pitch_pilot/`
+> **Last updated:** 2026-06-14 · **Source files:** `README.md`, `src/pitch_pilot/`
 
 **pitch-pilot** is an autonomous [SDR](glossary.md) (Sales Development Rep) agent.
 Give it a company **domain** and it researches the company, qualifies it against
@@ -26,6 +26,24 @@ groundedness score clears a configurable threshold.
 The result is outreach you can trust and audit: every sentence traces back to a
 page. See [Groundedness](groundedness.md) for the deep dive.
 
+## Results at a glance
+
+`cerebras/gpt-oss-120b`, gate-critical calls at temperature 0, 2026-06-14. The
+qualifier fix ([ADR-0015](decisions.md)) was developed on the original 17 and
+validated on a **held-out** set it never saw:
+
+- **Held-out (n=8, headline): Qualification F1 1.0** (precision 1.0, recall 1.0;
+  TP/FP/TN/FN = 4/0/4/0) — every unseen company landed correctly, including an
+  incumbent bank and two borderlines.
+- **Original 17 (development): F1 0.769 → 0.947** after the fix (all six false
+  positives eliminated; one new false negative from a flaky industry assessment).
+- **Mean groundedness 0.95–0.96**, equal to the faithfulness score under the strict
+  gate (one signal, not two).
+
+Both sets improved, so the fix generalizes rather than overfitting. Full provenance,
+before/after tables, the live-re-verifiability caveat, and the honest limitations:
+[Evaluation](evals.md).
+
 ## What it does — and refuses to do
 
 | Does | Refuses |
@@ -47,7 +65,7 @@ runs inside the research step where open-ended exploration actually helps.
    ┌──────────┐   ┌──────────┐   ┌────────┐   ┌────────┐   ┌────────┐
    │ RESEARCH │──▶│ QUALIFY  │──▶│ DRAFT  │──▶│ VERIFY │──▶│  LOG   │
    └──────────┘   └────┬─────┘   └────────┘   └───┬────┘   └────────┘
-   agentic loop        │ gate: disqualified → stop  │ gate: score ≥ threshold
+   agentic loop        │ gate: disqualified → stop  │ gate: body claims faithful?
 ```
 
 Read more in [Architecture](architecture.md) and [Pipeline](pipeline.md).
@@ -76,7 +94,8 @@ Full instructions: [Getting Started](getting-started.md).
 
 ## Project status
 
-P0 (the foundation) is complete: typed contracts, swappable clients, configuration,
-a working smoke test, tests, and this documentation site. The live pipeline and
-node logic land in [P1](roadmap.md). This project is built in public as a
+The end-to-end pipeline is shipping (P0–P4): the agentic research loop, ICP
+qualification, grounded drafting, the groundedness verification gate, and the
+offline [evaluation harness](evals.md) with the numbers above. Storage backends and
+a human-review app are next ([P5](roadmap.md)). This project is built in public as a
 portfolio-grade reference for a grounded, agentic outbound system.
