@@ -1,0 +1,3046 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An autonomous SDR agent that drafts grounded, source-cited outreach.">
+      
+      
+        <meta name="author" content="Manvendra">
+      
+      
+      
+        <link rel="prev" href="../roadmap/">
+      
+      
+        <link rel="next" href="../limitations/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Decisions (ADR) - pitch-pilot</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#decisions-adr-log" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="pitch-pilot" class="md-header__button md-logo" aria-label="pitch-pilot" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pitch-pilot
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Decisions (ADR)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Manvendra/pitch-pilot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Manvendra/pitch-pilot
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="pitch-pilot" class="md-nav__button md-logo" aria-label="pitch-pilot" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pitch-pilot
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Manvendra/pitch-pilot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Manvendra/pitch-pilot
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../groundedness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Groundedness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval Harness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions (ADR)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0001-a-fact-carries-its-source_url-by-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0001 — A Fact carries its source_url by construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0002-external-providers-sit-behind-thin-client-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0002 — External providers sit behind thin client interfaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0003 — Hybrid: deterministic outer graph + agentic research loop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0004-no-auto-send-no-linkedin-scraping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0004 — No auto-send, no LinkedIn scraping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0005-documentation-curated-narrative-auto-generated-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0005 — Documentation = curated narrative + auto-generated reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0006-research-queries-are-chosen-by-the-llm-bounded-by-a-hard-budget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0006 — Research queries are chosen by the LLM, bounded by a hard budget
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0007 — Facts carry verbatim evidence, verified by a substring check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0008 — Facts are tiered by source trust; the volatile-source policy is deferred to P3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0009 — Qualify is hybrid (LLM match + deterministic score/veto); verify is a basic gate first
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0010 — Policy B (first-party-only claims) + an LLM faithfulness judge; live re-check is eval-time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0011 — The eval set includes negatives + sparse; the harness caches, checkpoints, and backs off
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0012 — Research depth is leaned out by default (quota + cost/latency), and the eval runs at shipping depth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0014-draft-grounding-is-decoupled-source-substring-lives-at-extraction-draft-grounding-fact-selection-a-body-faithfulness-judge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0014 — Draft grounding is decoupled: source-substring lives at extraction; draft grounding = fact-selection + a body-faithfulness judge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0015-qualifier-reliable-negative-signal-veto-industry-as-a-required-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0015 — Qualifier: reliable negative-signal veto + industry as a required component
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pitch_pilot
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    pitch_pilot
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cli
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/clients/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    clients
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_3" id="__nav_8_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    clients
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/fetch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fetch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    llm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/graph/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    graph
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_5" id="__nav_8_1_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    graph
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/graph/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/graph/state/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    state
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/models/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    models
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_6" id="__nav_8_1_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/draft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    draft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/fact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/icp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    icp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/lead/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lead
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/qualification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    research
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/nodes/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nodes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_7" id="__nav_8_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    nodes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/draft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    draft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/qualify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    qualify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    research
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/verify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    verify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/storage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    storage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_8" id="__nav_8_1_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    storage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/storage/store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0001-a-fact-carries-its-source_url-by-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0001 — A Fact carries its source_url by construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0002-external-providers-sit-behind-thin-client-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0002 — External providers sit behind thin client interfaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0003 — Hybrid: deterministic outer graph + agentic research loop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0004-no-auto-send-no-linkedin-scraping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0004 — No auto-send, no LinkedIn scraping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0005-documentation-curated-narrative-auto-generated-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0005 — Documentation = curated narrative + auto-generated reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0006-research-queries-are-chosen-by-the-llm-bounded-by-a-hard-budget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0006 — Research queries are chosen by the LLM, bounded by a hard budget
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0007 — Facts carry verbatim evidence, verified by a substring check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0008 — Facts are tiered by source trust; the volatile-source policy is deferred to P3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0009 — Qualify is hybrid (LLM match + deterministic score/veto); verify is a basic gate first
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0010 — Policy B (first-party-only claims) + an LLM faithfulness judge; live re-check is eval-time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0011 — The eval set includes negatives + sparse; the harness caches, checkpoints, and backs off
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0012 — Research depth is leaned out by default (quota + cost/latency), and the eval runs at shipping depth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0014-draft-grounding-is-decoupled-source-substring-lives-at-extraction-draft-grounding-fact-selection-a-body-faithfulness-judge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0014 — Draft grounding is decoupled: source-substring lives at extraction; draft grounding = fact-selection + a body-faithfulness judge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0015-qualifier-reliable-negative-signal-veto-industry-as-a-required-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0015 — Qualifier: reliable negative-signal veto + industry as a required component
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Manvendra/pitch-pilot/edit/main/docs/decisions.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="decisions-adr-log">Decisions (ADR log)<a class="headerlink" href="#decisions-adr-log" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Last updated:</strong> 2026-06-14 · <strong>Source files:</strong> project-wide</p>
+</blockquote>
+<p>Architecture Decision Records — one entry per significant decision, with the
+context that motivated it and the consequences we accept. Newest decisions are
+appended at the bottom. Format: <strong>Date · Status · Context · Decision · Consequences.</strong></p>
+<hr />
+<h2 id="adr-0001-a-fact-carries-its-source_url-by-construction">ADR-0001 — A <code>Fact</code> carries its <code>source_url</code> by construction<a class="headerlink" href="#adr-0001-a-fact-carries-its-source_url-by-construction" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> The product's whole value is <em>grounded</em> outreach. If groundedness
+  is checked only by a late verification pass, ungrounded facts can flow through
+  research and drafting and slip past on an off day.</li>
+<li><strong>Decision:</strong> Make <a href="../data-models/"><code>Fact</code></a> validate a non-empty <code>http(s)</code>
+  <code>source_url</code> in its constructor, so an ungrounded fact is <em>unrepresentable</em>.</li>
+<li><strong>Consequences:</strong> Groundedness is enforced at the type boundary, not as an
+  afterthought. Every claim flowing through the pipeline already has a citable
+  source, and "where did this come from?" always has an answer. Callers must
+  supply a real URL when they create a fact — which is the point.</li>
+</ul>
+<h2 id="adr-0002-external-providers-sit-behind-thin-client-interfaces">ADR-0002 — External providers sit behind thin client interfaces<a class="headerlink" href="#adr-0002-external-providers-sit-behind-thin-client-interfaces" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> LLM and search vendors change pricing, models, and availability
+  often; we want to swap or A/B-test them without touching agent logic, and we
+  want fast tests.</li>
+<li><strong>Decision:</strong> Put LLM, search, and fetch behind small interfaces
+  (<code>LLMClient</code>, <code>SearchClient</code>, <code>fetch_page</code>) that normalize to our own types
+  (e.g. <code>SearchResult</code>). Concrete adapters (Gemini, Groq, Tavily) are selected by
+  configuration; the pipeline never imports a vendor SDK directly. SDKs are
+  imported lazily. See <a href="../components/clients/">Clients</a>.</li>
+<li><strong>Consequences:</strong> Vendor swaps are a config change; tests mock at the interface
+  seam with no network; the agent stays provider-agnostic. A thin mapping layer
+  per provider is the maintenance cost.</li>
+</ul>
+<h2 id="adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop">ADR-0003 — Hybrid: deterministic outer graph + agentic research loop<a class="headerlink" href="#adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> Outbound communication must be auditable and reproducible, but
+  research genuinely benefits from open-ended exploration.</li>
+<li><strong>Decision:</strong> Make the outer pipeline a deterministic
+  <a href="../glossary/">LangGraph</a> state machine (<code>research → qualify → draft → verify →
+  log</code>) with explicit gates, and confine agency to a bounded
+  <a href="../glossary/">ReAct</a>-style sub-loop <em>inside</em> the research node (capped by
+  <code>RESEARCH_MAX_QUERIES</code>). See <a href="../architecture/">Architecture</a> and
+  <a href="../pipeline/">Pipeline</a>.</li>
+<li><strong>Consequences:</strong> We get the adaptability of an agent where exploration helps
+  and the predictability of a state machine everywhere else. The cost is two
+  execution models to reason about instead of one.</li>
+</ul>
+<h2 id="adr-0004-no-auto-send-no-linkedin-scraping">ADR-0004 — No auto-send, no LinkedIn scraping<a class="headerlink" href="#adr-0004-no-auto-send-no-linkedin-scraping" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> Outbound tooling is easy to turn into a spam cannon, and LinkedIn
+  scraping violates platform terms and invites bans.</li>
+<li><strong>Decision:</strong> pitch-pilot never sends automatically — qualified, verified
+  drafts are <em>enqueued for human review</em> and a person approves before anything
+  goes out. LinkedIn scraping is excluded entirely. See
+  <a href="../limitations/">Limitations</a>.</li>
+<li><strong>Consequences:</strong> Stays on the right side of platform terms and anti-spam
+  norms; the human-review gate enforces a quality bar; the project leads with
+  <em>trustworthy, grounded</em> output rather than raw volume. Throughput is
+  intentionally lower than a fully-automated sender.</li>
+</ul>
+<h2 id="adr-0005-documentation-curated-narrative-auto-generated-reference">ADR-0005 — Documentation = curated narrative + auto-generated reference<a class="headerlink" href="#adr-0005-documentation-curated-narrative-auto-generated-reference" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> Docs that are written by hand and updated by memory drift out of
+  sync with the code. We want thorough docs that <em>stay</em> true as later phases land.</li>
+<li><strong>Decision:</strong> Split documentation into (a) hand-written narrative pages for
+  design and concepts and (b) an API reference <strong>auto-generated from Google-style
+  docstrings</strong> via <a href="../glossary/">MkDocs Material</a> + <code>mkdocstrings</code>. The reference
+  is generated by <code>scripts/gen_ref_pages.py</code> (<code>mkdocs-gen-files</code> +
+  <code>mkdocs-literate-nav</code>), so new modules appear automatically with no manual nav
+  edits. A maintenance protocol in <code>CLAUDE.md</code> ties every code change to its docs,
+  and <code>mkdocs build --strict</code> gates each phase.</li>
+<li><strong>Consequences:</strong> The reference can never drift from the docstrings. Narrative
+  docs carry a "Last updated · Source files" header so drift is visible.
+  Contributors must keep docstrings rich (they are the reference) and follow the
+  <code>CLAUDE.md</code> protocol. Two small extra dev dependencies are accepted to make the
+  reference self-maintaining.</li>
+</ul>
+<h2 id="adr-0006-research-queries-are-chosen-by-the-llm-bounded-by-a-hard-budget">ADR-0006 — Research queries are chosen by the LLM, bounded by a hard budget<a class="headerlink" href="#adr-0006-research-queries-are-chosen-by-the-llm-bounded-by-a-hard-budget" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> <a href="#adr-0003-hybrid-deterministic-outer-graph-agentic-research-loop">ADR-0003</a>
+  decided that agency is confined to the research sub-loop. P1 had to make that
+  concrete: how does the loop decide <em>what to do next</em>? A hardcoded list of
+  queries (<code>"{name} funding"</code>, <code>"{name} careers"</code>, …) is predictable but dumb — it
+  wastes the budget on dimensions that are already covered and never adapts to what
+  it has learned.</li>
+<li><strong>Decision:</strong> Make the loop genuinely agentic — the <strong>LLM picks the next search
+  query</strong>. Each iteration the planner is given the target dimensions, a summary of
+  facts gathered so far (and which dimensions are still thin), and the queries
+  already run; it returns <code>{"done", "reason", "next_query"}</code>. The loop stops on
+  <code>done: true</code> <strong>or</strong> when <code>len(queries_run) &gt;= RESEARCH_MAX_QUERIES</code>. The budget
+  is a <em>hard cap</em> that always overrides the planner's wish to continue.</li>
+<li><strong>Consequences:</strong> The query sequence adapts to the company and to gaps in
+  coverage, which a fixed list cannot. Cost and latency stay bounded and
+  predictable because the budget caps the agentic choice. The trade-off is one
+  extra LLM call per iteration (planning) and prompts that must be kept stable, and
+  a defensive guard against the planner repeating a query.</li>
+</ul>
+<h2 id="adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check">ADR-0007 — Facts carry verbatim evidence, verified by a substring check<a class="headerlink" href="#adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-05</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> <a href="../data-models/"><code>Fact</code></a> requiring a <code>source_url</code>
+  (<a href="#adr-0001-a-fact-carries-its-source_url-by-construction">ADR-0001</a>) proves a
+  claim <em>points</em> at a page, not that the page <em>says</em> it. An LLM asked to extract
+  facts from a page will happily blend in plausible claims from its own prior
+  knowledge and attach the page's URL to them — the most dangerous failure mode for
+  a groundedness-first product.</li>
+<li><strong>Decision:</strong> Extend <code>Fact</code> with an <code>evidence</code> field and have the extractor
+  require a short <strong>verbatim</strong> snippet for every claim, then verify that the snippet
+  actually appears in the source text (whitespace- and case-insensitive substring
+  match). Candidates whose evidence is not found are dropped and logged. See
+  <a href="../groundedness/">Groundedness → Layer 2</a>.</li>
+<li><strong>Consequences:</strong> Hallucinated claims are filtered at extraction time, before they
+  can ever reach a draft — groundedness is enforced where facts are <em>born</em>, not only
+  audited later. Reviewers get a quotable snippet per fact. The cost is some recall:
+  a correctly-extracted claim that paraphrases too loosely to match as a substring is
+  dropped. We accept lower recall for higher precision, consistent with
+  <a href="#adr-0004-no-auto-send-no-linkedin-scraping">ADR-0004</a>'s "trustworthy beats
+  voluminous."</li>
+</ul>
+<h2 id="adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3">ADR-0008 — Facts are tiered by source trust; the volatile-source policy is deferred to P3<a class="headerlink" href="#adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> The P1 live validation (see <code>docs/validation/p1-research-audit.md</code>)
+  found that groundedness has a second axis beyond "has a source": <em>how durable
+  that source is</em>. Facts from the company's own site re-verified at 100% on a live
+  re-fetch, while facts grounded only against a search-result snippet (commercial
+  aggregators like Wellfound/Tracxn/Crunchbase, blogs, news indexes) were routinely
+  bot-blocked or stale. A funding figure or headcount sourced from such a snippet is
+  exactly the kind of claim that erodes trust when a reviewer clicks through and
+  finds nothing — or worse, sends it.</li>
+<li><strong>Decision:</strong> Add a <code>source_tier</code> to <a href="../data-models/"><code>Fact</code></a> —
+  <code>own_site</code> / <code>authoritative</code> / <code>third_party_snippet</code> (the default) — assigned
+  <strong>deterministically from the URL</strong> by the research node (host on the company
+  domain → <code>own_site</code>; a small allowlist of primary sources → <code>authoritative</code>;
+  everything else → <code>third_party_snippet</code>). Drafting refuses <code>third_party_snippet</code>
+  facts for hard numerics, and verification flags claims backed only by that tier as
+  <em>volatile</em>. Crucially, <strong>what to <em>do</em> about volatile sources at the gate — a live
+  re-fetch, an LLM-judge, a confidence penalty — is explicitly deferred to P3.</strong> P2
+  only <em>labels</em> the risk; it does not yet act on it beyond flagging.</li>
+<li><strong>Consequences:</strong> The most dangerous claims (specific numbers from flaky sources)
+  can no longer anchor a draft, and reviewers see a <code>volatile:</code> flag on the rest.
+  The tiering is cheap, deterministic, and testable. The cost is that the
+  <code>authoritative</code> allowlist is deliberately tiny (only official filings), so many
+  genuinely-reliable sources sit in <code>third_party_snippet</code> for now; widening that
+  allowlist, and the live-recheck policy, are P3 work. This keeps P2 honest about
+  what it does and does not yet guarantee.</li>
+</ul>
+<h2 id="adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first">ADR-0009 — Qualify is hybrid (LLM match + deterministic score/veto); verify is a basic gate first<a class="headerlink" href="#adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> Two P2 nodes make judgements that must be both <em>fair</em> (the LLM is
+  good at fuzzy semantic matching of messy facts to ICP signals) and <em>auditable</em>
+  (a sales team must be able to reproduce and trust a qualify/verify verdict). Doing
+  either end-to-end with the LLM makes the verdict opaque and non-reproducible;
+  doing it purely with rules can't read free-text facts.</li>
+<li><strong>Decision:</strong> Split responsibilities. <strong>Qualify</strong> asks the LLM only to <em>assess</em>
+  each ICP attribute/signal against the facts (<code>match</code>/<code>no_match</code>/<code>unknown</code>, with a
+  citing fact), then <strong>deterministic Python</strong> computes a weighted, renormalized fit
+  score, applies a <strong>hard veto</strong> on any matched negative signal, and makes the
+  call against <code>QUALIFY_THRESHOLD</code>. Unknowns are never guessed — unknown structural
+  attributes are dropped from the score rather than penalized. <strong>Verify</strong> ships as a
+  <strong>basic, deterministic gate</strong> (claim → backing <code>Fact</code> with source + evidence;
+  flag unbacked and volatile; pass only if score clears <code>GROUNDEDNESS_THRESHOLD</code>
+  with no unbacked claim), with the LLM-judge / live-recheck hardening deferred to
+  P3 (see <a href="#adr-0008-facts-are-tiered-by-source-trust-the-volatile-source-policy-is-deferred-to-p3">ADR-0008</a>).</li>
+<li><strong>Consequences:</strong> Both verdicts are reproducible from the same inputs and easy to
+  explain (the score weights and the veto live in code, not in a prompt). The LLM is
+  used where it adds value and kept away from the final decision. The trade-off is
+  that the scoring weights are a hand-tuned policy we will revisit with eval data,
+  and the basic verify gate can be fooled by evidence that shares words with a claim
+  without supporting it — which is exactly what the P3 LLM-judge is meant to catch.</li>
+</ul>
+<h2 id="adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time">ADR-0010 — Policy B (first-party-only claims) + an LLM faithfulness judge; live re-check is eval-time<a class="headerlink" href="#adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> P2 shipped a <em>basic</em> verify gate
+  (<a href="#adr-0009-qualify-is-hybrid-llm-match-deterministic-scoreveto-verify-is-a-basic-gate-first">ADR-0009</a>)
+  that treated <code>third_party_snippet</code>-backed claims as merely <em>volatile</em> (a flag,
+  not a failure) and checked only that evidence was <em>present</em> (a substring), not
+  that it actually <em>supported</em> the claim. Both are gaps a groundedness-first product
+  cannot accept: the P1 validation showed third-party snippets are exactly the
+  sources that fail live re-verification, and "the evidence contains similar words"
+  is not the same as "the evidence backs this claim." The open question from
+  ADR-0008 — what to <em>do</em> about volatile sources — had to be answered.</li>
+<li><strong>Decision:</strong> Adopt <strong>Policy B (first-party-only for claims)</strong> and add an <strong>LLM
+  faithfulness judge</strong>, and draw a clear line about <em>where</em> live re-verification
+  belongs:<ol>
+<li><strong>Policy B.</strong> A stated draft claim may rest only on an <code>own_site</code> or
+   <code>authoritative</code> fact. Enforced twice: the draft node offers only first-party
+   facts as claimable (third-party facts become context-only), and the verify
+   node hard-fails any claim whose backing is <code>third_party_snippet</code>
+   (<code>volatile-source</code>), rather than flagging it.</li>
+<li><strong>Faithfulness judge.</strong> <code>judge_faithfulness(claim, evidence, llm)</code> rates each
+   claim↔evidence pair <code>faithful</code> / <code>overreach</code> / <code>unsupported</code>. A claim
+   verifies only if it is backed, first-party, substring-anchored, <strong>and</strong>
+   faithful (<code>overreach</code> allowed only when <code>FAITHFULNESS_STRICT</code> is false;
+   <code>unsupported</code> always fails). The judge fails closed. The draft passes only if
+   <strong>every</strong> claim verifies.</li>
+<li><strong>Live re-check is eval-time, not per-run.</strong> Independently re-fetching each
+   <code>source_url</code> to confirm the evidence still holds is valuable but slow,
+   network-heavy, and flaky on the hot path. It is therefore a <strong>P4 eval
+   metric</strong>, reported by tier, not part of <code>run</code>. The per-run verify node is
+   network-free except for the single judge call.</li>
+</ol>
+</li>
+<li><strong>Consequences:</strong> A passing draft now makes a precise, defensible promise — every
+  claim is first-party-sourced, substring-anchored, and judged faithful — and the
+  reviewer gets a per-claim audit trail (<code>claim_verdicts</code>) plus <code>groundedness_score</code>
+  and <code>faithfulness_score</code>. The honest framing is preserved: live <em>re-verifiability</em>
+  is reported separately, by tier, at eval time, never laundered into the per-run
+  faithfulness number. The costs: one LLM call per claim (bounded — drafts have few
+  hooks), a stricter gate that will route more drafts to human review, and reliance
+  on the judge's quality, which P4's eval harness is meant to measure and keep
+  honest.</li>
+</ul>
+<h2 id="adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off">ADR-0011 — The eval set includes negatives + sparse; the harness caches, checkpoints, and backs off<a class="headerlink" href="#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> P4 produces the numbers the project is judged on, so the eval has to
+  be both <em>honest</em> (a set of only easy positives would inflate every metric) and
+  <em>runnable</em> on free tiers (a full pipeline run is ~30 LLM calls per company; daily
+  quotas and per-minute rate limits make a naive loop abort halfway and lose all
+  progress). It also has to be reproducible — a headline number is meaningless
+  without the model that produced it.</li>
+<li><strong>Decision:</strong><ol>
+<li><strong>The dataset includes negatives and sparse companies, not just good fits.</strong>
+   <code>examples/eval_companies.json</code> spans <code>good_fit</code> (should qualify), <code>bad_fit</code>
+   (should not — including an incumbent-bank negative-signal case), and <code>sparse</code>
+   (thin sites, including good-fit edge cases). Labels are explicitly marked
+   <strong>human-proposed</strong> and several <code>[VERIFY]</code>; a documented rubric in
+   <code>docs/evals.md</code> makes the ground truth defensible. Metrics report not just
+   pass-rates but a <strong>failure-mode breakdown</strong>, so the eval proves the gate
+   <em>catches</em> bad claims, not just that it passes good ones.</li>
+<li><strong>The harness caches, checkpoints, backs off, and resumes.</strong> Research is
+   cached per domain (never recomputed); each company's result is checkpointed
+   as it finishes and skipped on resume; rate-limit errors are backed off and
+   retried, and a persistently rate-limited company is recorded as an error and
+   retried next run rather than aborting the whole run. Live re-verification is a
+   separate, network-bounded <code>recheck</code> command, not part of the per-run path
+   (consistent with <a href="#adr-0010-policy-b-first-party-only-claims-an-llm-faithfulness-judge-live-re-check-is-eval-time">ADR-0010</a>).</li>
+<li><strong>Every reported number carries the model that produced it.</strong> Result files
+   and reports are keyed by the model slug, and the report/<code>docs/evals.md</code> record
+   the model id, so numbers are reproducible and comparable across models.</li>
+</ol>
+</li>
+<li><strong>Consequences:</strong> The eval is honest about what it measures and runnable in a
+  free-tier reality across multiple days. The cost is a more complex harness (cache</li>
+<li>checkpoint + backoff) and a standing obligation to keep labels human-verified —
+  the proposed labels are a scaffold, and any metric is only as trustworthy as that
+  verification. The 8B model malforms the structured JSON under load, so headline
+  numbers are produced on a capable model (Groq 70B or Gemini), recorded alongside
+  the numbers.</li>
+</ul>
+<h2 id="adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth">ADR-0012 — Research depth is leaned out by default (quota + cost/latency), and the eval runs at shipping depth<a class="headerlink" href="#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> The first full-eval attempt showed one company's research consuming
+  ~40k tokens — feeding the extractor up to ~12,000 characters per source across
+  ~13 extraction calls. That blew Groq's free-tier <strong>100k tokens/day</strong> cap after
+  ~2 companies, stalling the eval (<a href="#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off">ADR-0011</a>).
+  But the deeper point is that this cost is real in production too: most of those
+  characters are boilerplate/nav/footer text that adds little grounded signal. A
+  leaner research pass is both the quota fix <strong>and</strong> a genuine cost/latency
+  improvement — and it must be the <em>default</em>, so the eval measures the same depth we
+  actually ship (no eval-vs-prod mismatch).</li>
+<li><strong>Decision:</strong> Make research depth tunable via <code>Settings</code> and adopt <strong>leaner
+  defaults</strong> as the shipping configuration:<ul>
+<li><code>RESEARCH_MAX_QUERIES</code> 4 → <strong>3</strong>;</li>
+<li><code>RESEARCH_MAX_PAGE_CHARS</code> (new) → <strong>3500</strong> — truncate each source's text fed
+  to the extractor (was ~12,000). This is the dominant token lever;</li>
+<li><code>RESEARCH_MAX_FACTS_PER_SOURCE</code> 8 → <strong>5</strong>.
+  Crucially, truncation happens <strong>once</strong>, before extraction, and the
+  evidence-substring grounding check runs against that <em>same</em> truncated text — so
+  the model can only ground claims in what we verify, and groundedness is fully
+  preserved.</li>
+</ul>
+</li>
+<li><strong>Consequences:</strong> Per-company research token use drops by roughly half (extraction
+  input falls from ~3,000 to ~900 tokens/call), so more companies fit in the daily
+  cap and every run is cheaper and faster — at full shipping fidelity. The trade-off
+  is slightly thinner research (fewer queries, fewer facts/source, less page text),
+  which can lower recall on facts buried deep in a long page; we accept that for the
+  cost/latency/quota win and because the highest-value facts are near the top of a
+  company's own pages. The caps are env-tunable for runs that want more depth.</li>
+<li><strong>Update (2026-06-14):</strong> The <code>RESEARCH_MAX_QUERIES</code> 4 → 3 part of this decision was
+  a <strong>Groq-quota</strong> choice (100k tokens/day) that was <strong>never actually shipped</strong> — the
+  project moved to <strong>Cerebras</strong> (~1M tokens/day, the evaluated and shipped provider —
+  <a href="#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier">ADR-0013</a>),
+  where a 4th query is easily affordable, and the eval tables and README demos were
+  in fact run at <strong>4</strong>. To remove the eval-vs-default mismatch, the <strong>default query
+  budget is now 4</strong> (the depth everything actually uses). The other lean levers —
+  <code>RESEARCH_MAX_PAGE_CHARS</code> (3500, the dominant token lever) and
+  <code>RESEARCH_MAX_FACTS_PER_SOURCE</code> (5) — are unchanged; depth stays lean where it
+  matters for cost, and <code>RESEARCH_MAX_QUERIES</code> is still env-tunable.</li>
+</ul>
+<h2 id="adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier">ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier<a class="headerlink" href="#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-13</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> Even after leaning out research depth (<a href="#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth">ADR-0012</a>),
+  the full eval (~17 companies) needs more tokens than Groq's free <strong>100k/day</strong> cap
+  allows in a single day, so a complete, reproducible run kept spilling across days
+  (and stalling on per-minute limits). Gemini's free tier is even tighter (20
+  requests/day). We wanted to finish the eval in one session without paying.</li>
+<li><strong>Decision:</strong> Add <strong>Cerebras</strong> as a third LLM provider. Its free tier allows
+  <strong>~1M tokens/day (~10x Groq)</strong> — enough to run the whole eval set in one session.
+  <code>CerebrasClient</code> uses the OpenAI-compatible <code>cerebras-cloud-sdk</code> and mirrors
+  <code>GroqClient</code> (same JSON-mode + lenient parsing, same error normalization to
+  <code>LLMError</code>). Its free tier caps a single request at <strong>8,192 tokens</strong>, so prompt
+  builders bound their variable-length facts payloads (<code>trim_to_token_budget</code> /
+  <code>CONTEXT_TOKEN_CAP</code>) to stay under it; the lean page cap already keeps extraction
+  prompts small.</li>
+<li><strong>Model note:</strong> available models vary by Cerebras account/tier. Our free-tier
+    account does <strong>not</strong> offer Llama-3.3-70B (only <code>gpt-oss-120b</code> and <code>zai-glm-4.7</code>),
+    so the default is <strong><code>gpt-oss-120b</code></strong> (a capable model that handles the structured
+    JSON well). Comparability is preserved a different way: the full eval is re-run
+    <strong>fresh and internally consistent on this one model</strong>, and the earlier
+    full-depth Groq partial is <strong>discarded</strong> (its cache cleared) rather than mixed —
+    so the headline numbers come from a single model + depth, recorded with the run.</li>
+<li><strong>Consequences:</strong> The eval can run end-to-end in one session on a capable 70B
+  model at no cost, and the provider seam (<a href="#adr-0002-external-providers-sit-behind-thin-client-interfaces">ADR-0002</a>)
+  made this a pure addition — one new client + one factory branch, no pipeline
+  changes. The trade-offs: a new optional dependency (<code>cerebras-cloud-sdk</code>, lazily
+  imported so it is only needed when the provider is selected), and a tighter 8,192-
+  token context window that the prompt-budget guard must respect (a useful
+  discipline regardless of provider).</li>
+</ul>
+<h2 id="adr-0014-draft-grounding-is-decoupled-source-substring-lives-at-extraction-draft-grounding-fact-selection-a-body-faithfulness-judge">ADR-0014 — Draft grounding is decoupled: source-substring lives at extraction; draft grounding = fact-selection + a body-faithfulness judge<a class="headerlink" href="#adr-0014-draft-grounding-is-decoupled-source-substring-lives-at-extraction-draft-grounding-fact-selection-a-body-faithfulness-judge" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-14</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> The P3 draft/verify design asked the model to copy a fact's text
+  <strong>verbatim</strong> into <code>hooks</code>, then validated each hook as a substring of the source
+  and ran a faithfulness judge per claim↔evidence pair. This was brittle in exactly
+  the wrong direction: a <em>faithful paraphrase</em> — the normal, desirable way to write
+  outreach — was discarded because it was not a verbatim copy, while the check added
+  no real safety (the fact it pointed at had already passed the extraction-time
+  substring guard). The first full Cerebras run showed the damage: most qualified
+  companies produced <code>draft_passed=false</code>, <code>groundedness=0.0</code> with <strong>empty</strong>
+  <code>claim_verdicts</code> — the hooks simply failed to match, so there was nothing left to
+  judge. The numbers were an artifact of the matching layer, not of grounding.</li>
+<li><strong>Decision:</strong> Move the source-text grounding check to where it belongs —
+  <strong>extraction</strong>, where a <code>Fact</code>'s <code>evidence</code> is already substring-verified against
+  its source (<a href="#adr-0007-facts-carry-verbatim-evidence-verified-by-a-substring-check">ADR-0007</a>)
+  — and split the draft-time guarantee into two parts:</li>
+<li><strong>Draft grounding = fact-selection.</strong> The model is shown the claimable
+     (first-party, Policy B) facts as a <strong>numbered</strong> list and returns the <strong>ids</strong> of
+     the facts it grounded the email in. <code>hooks_used</code> is the canonical claim text of
+     those facts, so each hook is a real first-party fact <strong>by construction</strong>. The
+     body is free prose the model may paraphrase. The draft layer does <strong>not</strong>
+     re-substring-check or fuzzy-match hook text against the source.</li>
+<li><strong>Verify = structural assert + body-faithfulness judge.</strong> The verify node
+     re-resolves each hook to a first-party fact (a <code>structural</code> failure if any does
+     not — an invariant violation), then runs <strong>one</strong> LLM judge over the draft
+     <strong>body</strong> against the selected facts, extracting every factual claim the body
+     makes about the company and rating it <code>faithful</code> / <code>overreach</code> / <code>unsupported</code>.
+     The draft passes iff it is grounded, the body is non-empty, the judge ran, and
+     no body claim is <code>unsupported</code> (and none is <code>overreach</code> under
+     <code>FAITHFULNESS_STRICT</code>). <code>groundedness_score</code> is redefined as
+     <code>faithful_body_claims / total_body_claims</code> (verified / total under strict mode).</li>
+<li><strong>Why this is stronger than verbatim-hook validation.</strong> It checks the thing that
+    actually matters — <em>does the prose the human will send overstate the sources?</em> —
+    instead of penalizing paraphrase. Source-text grounding is not weakened: it
+    still happens, once, at extraction, against the exact text we verify. And the
+    judge now audits the <strong>body</strong> a reviewer reads, not a verbatim hook list the
+    reader never sees.</li>
+<li><strong>Re-running honestly.</strong> Only <strong>draft + verify</strong> were re-run (new <code>redraft</code>
+  command), reusing cached research <strong>and</strong> the frozen qualification verdicts, so the
+  qualification matrix is untouched (TP=10, FP=3, TN=4, FN=0; F1 0.870) and the new
+  draft/verify numbers are real and comparable. On <code>cerebras/gpt-oss-120b</code>
+  (2026-06-14): draft-gate pass-rate <strong>11/13 = 0.846</strong>, mean groundedness <strong>0.936</strong>,
+  own_site live re-verifiability <strong>0.90 (45/50)</strong>. The three qualification false
+  positives and the <em>industry-gating</em> idea that would address two of them are
+  recorded as <strong>future work</strong> in <a href="../evals/">Evaluation</a> — deliberately <strong>not</strong>
+  applied now, because tuning the scorer on the same 17-company set and reporting the
+  improved number on that set would not be defensible.</li>
+<li><strong>Consequences:</strong> Grounding is now robust to paraphrase, the per-run cost drops
+  (one body-judge call instead of one per hook), and the reasons the gate can emit
+  shrink to <code>unsupported</code> / <code>overreach</code> / <code>structural</code> / <code>judge-error</code>. The
+  <code>ClaimVerdict</code> audit trail now describes <strong>body</strong> claims (with the supporting fact
+  cited by id), and <code>VerificationResult.tier_breakdown</code> counts the grounding hooks
+  by tier. The substring-anchoring guarantee is unchanged — it simply lives in one
+  place now.</li>
+</ul>
+<h2 id="adr-0015-qualifier-reliable-negative-signal-veto-industry-as-a-required-component">ADR-0015 — Qualifier: reliable negative-signal veto + industry as a required component<a class="headerlink" href="#adr-0015-qualifier-reliable-negative-signal-veto-industry-as-a-required-component" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Date:</strong> 2026-06-14</li>
+<li><strong>Status:</strong> Accepted</li>
+<li><strong>Context:</strong> The temperature-0 re-baseline (<a href="../evals/">Evaluation</a>) exposed six
+  qualification false positives (F1 0.769, precision 0.625): non-fintech companies
+  (<code>figma</code>, <code>huggingface</code>, <code>linear</code>, <code>vercel</code>, <code>nilenso</code>) and an incumbent bank
+  (<code>jpmorganchase</code>) all qualified. A diagnostic on the raw assessor output found two
+  root causes:</li>
+<li><strong>The negative-signal veto under-fired.</strong> Negative signals are phrased as
+     negations ("not fintech or no money movement"), and the assessor — told "if the
+     facts don't establish it, mark it <code>unknown</code>; don't guess" — defaulted negations
+     to <code>unknown</code> because no fact <em>literally states</em> the negation. So the hard veto
+     rarely triggered, and it was flaky run-to-run.</li>
+<li><strong><code>industry=unknown</code> was dropped from the score.</strong> Unknown structural components
+     were renormalized out, so a company whose industry could not be confirmed was not
+     penalized; one matched positive signal then cleared the 0.5 threshold (0.53).</li>
+<li><strong>Decision:</strong> Two targeted changes in <code>nodes/qualify.py</code>:</li>
+<li><strong>Judge negative signals from the described business, not literal negation.</strong> The
+     assessor prompt now instructs: for a NEGATIVE signal, decide whether the
+     disqualifying condition is <em>true of the company given what the facts reveal about
+     its core business</em> (e.g. "not fintech" matches when the business is design tools
+     / dev infra / ML hosting; "large incumbent bank" matches a major established
+     bank) — use <code>unknown</code> only when the facts genuinely don't reveal the domain.
+     "Don't guess" still governs structural attributes and positive signals.</li>
+<li><strong>Industry is a required component for an industry-specified ICP.</strong> When
+     <code>icp.industries</code> is non-empty, an <code>unknown</code> <em>or</em> <code>no_match</code> industry scores 0.0
+     and stays in the denominator (instead of being dropped), so a fintech ICP does
+     not qualify a company it cannot place in-industry. Size/region unknowns are still
+     dropped — research gaps there are noise, not disqualifying.</li>
+<li><strong>Validation (the part that makes this defensible).</strong> The fix was developed against
+  the original 17 and then validated on a <strong>held-out</strong> set of 8 unseen companies
+  (<code>examples/eval_companies_holdout.json</code>). Both improved: original 17 F1 <strong>0.769 →
+  0.947</strong> (all six FPs eliminated, precision → 1.0); held-out F1 <strong>1.0</strong> (4/4 fit,
+  4/4 not — including an incumbent bank and two borderlines). Improving on a set it
+  was never tuned on is the evidence it generalizes rather than overfits.</li>
+<li><strong>Consequences / trade-off:</strong> Making <code>industry=unknown</code> count against a company
+  introduced <strong>one false negative</strong> on the dev set — <code>ramp.com</code>, when the assessor
+  flakily returned <code>industry=unknown</code> for a genuine fintech, fell below threshold
+  (recall 1.0 → 0.9). This is the deliberate precision/recall trade (we accept a rare
+  flaky-industry miss to stop the systematic non-fintech FPs); the held-out set did
+  not exhibit it. A confidence/retry on the industry assessment is a candidate
+  follow-up. The draft-gate overreach rate (drafter over-claiming, caught correctly by
+  the gate) is noted in <a href="../evals/">Evaluation</a> as a separate, not-yet-fixed finding.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "toc.follow", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

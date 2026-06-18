@@ -1,0 +1,3372 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An autonomous SDR agent that drafts grounded, source-cited outreach.">
+      
+      
+        <meta name="author" content="Manvendra">
+      
+      
+      
+        <link rel="prev" href="../glossary/">
+      
+      
+        <link rel="next" href="../reference/pitch_pilot/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Changelog - pitch-pilot</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="pitch-pilot" class="md-header__button md-logo" aria-label="pitch-pilot" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pitch-pilot
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Manvendra/pitch-pilot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Manvendra/pitch-pilot
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="pitch-pilot" class="md-nav__button md-logo" aria-label="pitch-pilot" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pitch-pilot
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Manvendra/pitch-pilot" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Manvendra/pitch-pilot
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../groundedness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Groundedness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../components/evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eval Harness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions (ADR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Limitations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [Unreleased]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.9.0] — 2026-06-14
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.9.0] — 2026-06-14">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-cerebrasgpt-oss-120b-temperature-0-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval (cerebras/gpt-oss-120b, temperature 0, 2026-06-14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.8.0] — 2026-06-14
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.8.0] — 2026-06-14">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-canonical-temperature-0-re-baseline-cerebrasgpt-oss-120b-2026-06-14-n17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval — canonical temperature-0 re-baseline (cerebras/gpt-oss-120b, 2026-06-14, n=17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.7.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.7.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.5.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.4.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.3.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.3.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2026-06-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] — 2026-06-05
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] — 2026-06-05">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-06-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] — 2026-06-05
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] — 2026-06-05">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pitch_pilot
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    pitch_pilot
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cli
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/clients/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    clients
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_3" id="__nav_8_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    clients
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/fetch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fetch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    llm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/clients/search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/graph/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    graph
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_5" id="__nav_8_1_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    graph
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/graph/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/graph/state/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    state
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/models/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    models
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_6" id="__nav_8_1_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/draft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    draft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/fact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    fact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/icp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    icp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/lead/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lead
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/qualification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    qualification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    research
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/models/verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/nodes/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nodes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_7" id="__nav_8_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    nodes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/draft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    draft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/qualify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    qualify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    research
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/nodes/verify/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    verify
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/pitch_pilot/storage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    storage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_1_8" id="__nav_8_1_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    storage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/pitch_pilot/storage/store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [Unreleased]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.9.0] — 2026-06-14
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.9.0] — 2026-06-14">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-cerebrasgpt-oss-120b-temperature-0-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval (cerebras/gpt-oss-120b, temperature 0, 2026-06-14)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080-2026-06-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.8.0] — 2026-06-14
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.8.0] — 2026-06-14">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eval-canonical-temperature-0-re-baseline-cerebrasgpt-oss-120b-2026-06-14-n17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eval — canonical temperature-0 re-baseline (cerebras/gpt-oss-120b, 2026-06-14, n=17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.7.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.7.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.6.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.5.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.4.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-2026-06-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.3.0] — 2026-06-13
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.3.0] — 2026-06-13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2026-06-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] — 2026-06-05
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] — 2026-06-05">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-06-05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] — 2026-06-05
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] — 2026-06-05">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Manvendra/pitch-pilot/edit/main/docs/changelog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<p>All notable changes to <strong>pitch-pilot</strong> are documented in this file.</p>
+<p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<p><em>Nothing yet — P5 (storage and review app: production <code>Store</code> backends and a
+human-review UI over the queue) is next.</em></p>
+<h2 id="090-2026-06-14">[0.9.0] — 2026-06-14<a class="headerlink" href="#090-2026-06-14" title="Permanent link">&para;</a></h2>
+<p><strong>Qualifier fix + held-out validation.</strong> The temperature-0 re-baseline exposed six
+qualification false positives (F1 0.769); a diagnostic traced them to an under-firing
+negative-signal veto and <code>industry=unknown</code> being dropped from the score (see
+ADR-0015).</p>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>nodes/qualify.py</code> — reliable negative-signal veto.</strong> The assessor prompt now
+  judges NEGATIVE signals from the company's described business (so a negation like
+  "not fintech" fires when the facts show design tools / dev infra / ML hosting,
+  instead of defaulting to <code>unknown</code>). Structural attributes and positive signals
+  still follow "don't guess → unknown".</li>
+<li><strong><code>nodes/qualify.py</code> — industry is a required component.</strong> When the ICP names target
+  industries, an <code>unknown</code> or <code>no_match</code> industry scores 0.0 and stays in the
+  denominator (instead of being dropped), so a fintech ICP can't qualify a company it
+  can't place in-industry. Size/region unknowns are still dropped.</li>
+</ul>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>examples/eval_companies_holdout.json</code></strong> — an 8-company held-out validation set
+  (clear good-fit, clear bad-fit incl. an incumbent bank, two borderline) to test
+  whether qualifier changes generalize vs. overfit.</li>
+</ul>
+<h3 id="eval-cerebrasgpt-oss-120b-temperature-0-2026-06-14">Eval (cerebras/gpt-oss-120b, temperature 0, 2026-06-14)<a class="headerlink" href="#eval-cerebrasgpt-oss-120b-temperature-0-2026-06-14" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Held-out (n=8, headline): F1 1.0</strong> (TP=4, FP=0, TN=4, FN=0) — every unseen company
+  correct, including an incumbent bank and two borderlines.</li>
+<li><strong>Original 17 (development): F1 0.769 → 0.947</strong> — all six false positives eliminated
+  (precision 0.625 → 1.0). Both sets improved, so the fix generalizes.</li>
+<li><strong>Trade-off, flagged:</strong> one new false negative on the dev set (<code>ramp.com</code>, flaky
+  <code>industry=unknown</code> on a real fintech; recall 1.0 → 0.9). Draft-gate overreach
+  (drafter over-claiming, caught by the gate) noted as a separate finding. See
+  <code>docs/evals.md</code>.</li>
+</ul>
+<h2 id="080-2026-06-14">[0.8.0] — 2026-06-14<a class="headerlink" href="#080-2026-06-14" title="Permanent link">&para;</a></h2>
+<p><strong>Draft grounding decoupled from phrasing.</strong> The first full Cerebras eval revealed
+that validating draft hooks as <strong>verbatim source substrings</strong> was brittle: faithful
+paraphrases were discarded, so most qualified companies scored
+<code>groundedness=0.0</code> with empty verdicts — an artifact of the matching layer, not of
+grounding. Source-text grounding belongs at extraction; the draft should ground by
+<em>selecting facts</em> and the verify gate should judge the <em>body</em>'s faithfulness (see
+ADR-0014).</p>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Draft node</strong> (<code>nodes/draft.py</code>) — grounds by <strong>fact-selection</strong>: the model is
+  shown the claimable (first-party) facts as a numbered list and returns the <strong>ids</strong>
+  it grounded the email in. <code>hooks_used</code> is the canonical claim text of those facts,
+  grounded by construction. No more verbatim-hook substring matching or fuzzy
+  matching of paraphrased text back to facts.</li>
+<li><strong>Verify node</strong> (<code>nodes/verify.py</code>) — now a <strong>structural</strong> check (every hook
+  re-resolves to a first-party fact; else <code>structural</code>) plus <strong>one</strong> body-faithfulness
+  judge (<code>judge_body</code>) over the draft <strong>body</strong> against the selected facts, rating each
+  body claim <code>faithful</code> / <code>overreach</code> / <code>unsupported</code>. Passes iff grounded, body
+  non-empty, judge ran, and no <code>unsupported</code> (and no <code>overreach</code> under
+  <code>FAITHFULNESS_STRICT</code>). <code>groundedness_score</code> redefined as
+  <code>faithful_body_claims / total_body_claims</code>. <code>judge_faithfulness</code> is replaced by
+  <code>judge_body</code>.</li>
+<li><strong><code>VerificationResult</code> / <code>ClaimVerdict</code></strong> — <code>claim_verdicts</code> now describe <strong>body</strong>
+  claims (with the supporting fact cited by id); <code>tier_breakdown</code> counts the grounding
+  hooks by tier; failure reasons shrink to <code>unsupported</code> / <code>overreach</code> / <code>structural</code>
+  / <code>judge-error</code>.</li>
+<li><strong>No fact-id leakage in drafts</strong> — the draft prompt forbids fact ids in the
+  subject/body, with a regex backstop (<code>_strip_fact_ids</code>) that removes any leaked
+  <code>(Fact N)</code> token (the ids are for the <code>facts_used</code> field only).</li>
+<li><strong>Deterministic gate-critical calls</strong> — <code>LLMClient.complete</code> / <code>complete_json</code> take
+  an optional <code>temperature</code> (sent only when set; provider default otherwise), and the
+  <strong>qualify, draft, and verify-judge</strong> calls pass <code>temperature=0</code> so the headline
+  numbers are a reproducible run, not a lucky sample.</li>
+</ul>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>redraft</code> eval command</strong> (<code>evals/run_eval.py</code>) — re-runs only draft + verify for
+  already-qualified companies, reusing cached research <strong>and</strong> each record's frozen
+  qualification verdict (the qualification matrix is never recomputed).</li>
+</ul>
+<h3 id="eval-canonical-temperature-0-re-baseline-cerebrasgpt-oss-120b-2026-06-14-n17">Eval — canonical temperature-0 re-baseline (cerebras/gpt-oss-120b, 2026-06-14, n=17)<a class="headerlink" href="#eval-canonical-temperature-0-re-baseline-cerebrasgpt-oss-120b-2026-06-14-n17" title="Permanent link">&para;</a></h3>
+<p>One clean full run with qualify/draft/verify at temperature 0 (research reused from
+cache). Replaces the earlier mixed table; this run is canonical.</p>
+<ul>
+<li>Qualification: TP=10, FP=6, TN=1, FN=0 → <strong>F1 0.769</strong> (precision 0.625, recall 1.0,
+  accuracy 0.647).</li>
+<li>Draft-gate pass-rate <strong>9/16 = 0.5625</strong>, mean groundedness/faithfulness <strong>0.8615</strong>,
+  own_site live re-verifiability <strong>0.9032 (56/62)</strong>.</li>
+<li>Reproducibility honesty: an earlier <em>non-deterministic</em> run scored F1 0.870; at
+  temperature 0 the negative-signal veto under-fires consistently (figma/huggingface/
+  jpmorganchase become false positives), so the reproducible number is lower. See
+  <code>docs/evals.md</code> for the full Known Limitations (six FPs; veto-hardening /
+  industry-gating fix deferred to a held-out set; residual temp-0 variance).</li>
+</ul>
+<h2 id="070-2026-06-13">[0.7.0] — 2026-06-13<a class="headerlink" href="#070-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Cerebras provider.</strong> Adds a third LLM provider so the eval can run end-to-end in
+one session on Cerebras's ~1M tokens/day free tier (~10x Groq) (see ADR-0013).</p>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>CerebrasClient</code> (<code>clients/llm.py</code>) — OpenAI-compatible via <code>cerebras-cloud-sdk</code>;
+  mirrors <code>GroqClient</code> (JSON mode + lenient parsing + error normalization to
+  <code>LLMError</code>). Default model <code>gpt-oss-120b</code> (available models vary by Cerebras
+  account/tier — check <code>models.list()</code>).</li>
+<li><code>CEREBRAS_API_KEY</code> (optional) and <code>CEREBRAS_MODEL</code> settings; <code>get_llm_client()</code>
+  now selects <code>"cerebras"</code>. <code>Settings.active_model</code> resolves the model id for the
+  active provider.</li>
+<li><code>CONTEXT_TOKEN_CAP</code> (8192) and <code>trim_to_token_budget()</code> — bound the qualify/draft
+  facts payloads so no single prompt exceeds Cerebras's free-tier context window.</li>
+<li><code>cerebras-cloud-sdk</code> runtime dependency (lazily imported — only needed when the
+  provider is selected).</li>
+</ul>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>LLM_PROVIDER</code> now accepts <code>"cerebras"</code> in addition to <code>"gemini"</code> / <code>"groq"</code>; the
+  smoke check and eval report use <code>Settings.active_model</code> so the right model is named.</li>
+</ul>
+<h2 id="060-2026-06-13">[0.6.0] — 2026-06-13<a class="headerlink" href="#060-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Lean research depth (default).</strong> Research is leaner by default — cheaper, faster,
+and within free-tier token caps — at the same depth the eval and production both
+run, so there is no eval-vs-prod mismatch (see ADR-0012).</p>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>RESEARCH_MAX_PAGE_CHARS</code> (default <code>3500</code>) — truncates each source's text fed to
+  the extractor; the biggest token lever (was ~12,000). <code>extract_facts</code> truncates
+  once and runs the evidence-substring check against that same truncated text, so
+  groundedness is preserved.</li>
+<li><code>RESEARCH_MAX_FACTS_PER_SOURCE</code> (default <code>5</code>) setting (was a fixed <code>8</code>).</li>
+</ul>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>RESEARCH_MAX_QUERIES</code> default 4 → <strong>3</strong>.</li>
+<li>Research depth is now configured via <code>Settings</code> (the three knobs above) and
+  passed through <code>run_research</code> to the extractor; the old module constants survive
+  only as lean fallback defaults. Per-company research token use roughly halves.</li>
+</ul>
+<h2 id="050-2026-06-13">[0.5.0] — 2026-06-13<a class="headerlink" href="#050-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>P4 — Eval harness.</strong> The offline evaluation that produces the headline numbers,
+built for free-tier reality (cache, checkpoint, back off, resume).</p>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>examples/eval_icp.json</code> and <code>examples/eval_companies.json</code> — a hypothetical
+  fintech ICP and a labeled company set spanning <code>good_fit</code> / <code>bad_fit</code> (incl. an
+  incumbent-bank negative-signal case) / <code>sparse</code>. Labels are explicitly
+  <strong>human-proposed</strong> with a <code>[VERIFY]</code> flag and a defensible labeling rubric in
+  <code>docs/evals.md</code>.</li>
+<li><code>evals/run_eval.py</code> — the runner with three commands: <code>run</code> (research[cached] →
+  qualify → draft → verify, checkpointed and resumable), <code>recheck</code> (independent live
+  re-verification of used sources, reported by tier), and <code>report</code> (recompute, no
+  network). Research is cached per domain; rate-limits are retried with exponential
+  backoff via <code>RetryingLLM</code>; a persistently rate-limited company is recorded as an
+  error and retried next run rather than aborting the run.</li>
+<li><code>evals/metrics.py</code> — pure metric functions: qualification accuracy / precision /
+  recall / F1, draft-gate pass-rate, mean groundedness &amp; faithfulness, a
+  failure-mode breakdown (proves the gate catches, not just passes), live
+  re-verifiability by tier, and facts/company by category (degradation).</li>
+<li><code>docs/evals.md</code> rewritten (methodology, rubric, metrics, numbers table) and a new
+  <code>docs/components/evals.md</code> documenting the harness internals.</li>
+<li>CLI: <code>python -m evals.run_eval [--limit N] [--resume] [recheck|report]</code>.</li>
+</ul>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pytest</code> now also has the repo root on <code>pythonpath</code> so the <code>evals</code> package is
+  importable in tests; <code>evals/cache/</code> and <code>evals/results/</code> are git-ignored runtime
+  artifacts (dated reports under <code>evals/reports/</code> are kept).</li>
+</ul>
+<h2 id="040-2026-06-13">[0.4.0] — 2026-06-13<a class="headerlink" href="#040-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>P3 — Verification &amp; scoring.</strong> The basic verify gate becomes the real
+groundedness gate. A passing draft now makes a precise, defensible promise: every
+claim is first-party-sourced, substring-anchored, and judged faithful to its
+evidence by an LLM — with a per-claim audit trail.</p>
+<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>judge_faithfulness(claim, evidence, llm)</code> — the core P3 addition: an LLM judge
+  that rates each claim↔evidence pair <code>faithful</code> / <code>overreach</code> / <code>unsupported</code>.
+  Distinct from the substring check (presence): it judges actual <em>support</em>. Fails
+  closed (any judge error ⇒ <code>unsupported</code>).</li>
+<li><code>VerificationResult</code> gains <code>claim_verdicts</code> (a per-claim audit trail — see the new
+  <code>ClaimVerdict</code> model), <code>faithfulness_score</code> (faithful / total claims), and
+  <code>tier_breakdown</code> (claims per backing source tier).</li>
+<li><code>FAITHFULNESS_STRICT</code> setting (default <code>true</code>): when true an <code>overreach</code> verdict
+  fails the gate; when false only <code>unsupported</code> fails.</li>
+<li>The <code>run</code> CLI now prints per-claim verdicts (tier, <code>substring_ok</code>, faithfulness),
+  the <code>faithfulness_score</code>, the tier breakdown, and the pass/fail with reasons.</li>
+</ul>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Policy B (first-party-only for claims), enforced end-to-end.</strong> The draft node
+  restricts the <em>claimable</em> fact pool to <code>own_site</code> / <code>authoritative</code> facts;
+  <code>third_party_snippet</code> facts may inform context but can never become a hook. The
+  verify node hard-fails any claim backed only by a <code>third_party_snippet</code> fact
+  (<code>volatile-source</code>) — a policy violation, not a soft flag. (Supersedes P2's
+  numeric-only tier gate.) See ADR-0010.</li>
+<li>The verify gate is now: a claim is <em>verified</em> iff backed + first-party tier +
+  <code>substring_ok</code> + faithful (<code>overreach</code> allowed only when <code>FAITHFULNESS_STRICT</code> is
+  off); a draft passes only if <strong>every</strong> claim verifies. <code>flagged_claims</code> records
+  the specific reason per failure (<code>unbacked</code> / <code>volatile-source</code> / <code>not-substring</code>
+  / <code>overreach</code> / <code>unsupported</code>).</li>
+<li><code>run_verification(...)</code> and <code>verify_node</code> now take an LLM client (for the judge);
+  the verify node is network-free except for that one call. Independent live
+  re-verification of sources is deferred to P4 as an eval-time, by-tier metric
+  (ADR-0010).</li>
+<li><code>groundedness.md</code> rewritten as a precise four-layer methodology with exact metric
+  definitions and an honest headline framing.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The LLM clients (<code>GeminiClient</code> / <code>GroqClient</code>) now normalize provider SDK
+  exceptions to <code>LLMError</code>, so a vendor failure (e.g. Groq's server-side
+  <code>json_validate_failed</code>, or a rate-limit) no longer escapes a node's <code>except
+  LLMError</code> and crashes the pipeline mid-run — nodes degrade gracefully instead.</li>
+</ul>
+<h2 id="030-2026-06-13">[0.3.0] — 2026-06-13<a class="headerlink" href="#030-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>P2 — Pipeline.</strong> The deterministic outer graph is wired end-to-end: a company
+domain now flows through research → qualify → draft → verify → log and lands as a
+grounded, human-reviewable lead. Nothing is ever auto-sent.</p>
+<h3 id="added_6">Added<a class="headerlink" href="#added_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>Fact.source_tier</code> (<code>own_site</code> / <code>authoritative</code> / <code>third_party_snippet</code>) —
+  assigned deterministically from the source URL by the research node
+  (<code>classify_source_tier</code>). Encodes the P1 validation finding that own-site facts
+  are far more durable than search-snippet facts (ADR-0008).</li>
+<li><code>run_qualification(...)</code> + <code>qualify_node</code> — a hybrid qualifier: the LLM
+  semantically matches ICP attributes/signals against the facts, then deterministic
+  code computes a weighted fit score, applies a hard veto on matched negative
+  signals, and decides against the new <code>QUALIFY_THRESHOLD</code>. Unknowns are never
+  guessed (ADR-0009).</li>
+<li><code>run_draft(...)</code> + <code>draft_node</code> — writes outreach only from grounded facts:
+  withholds hard numerics sourced from <code>third_party_snippet</code> facts, and validates
+  every hook back to a real fact so <code>Draft.hooks_used</code> is always a subset of the
+  research facts.</li>
+<li><code>run_verification(...)</code> + <code>verify_node</code> — the basic groundedness gate: each draft
+  claim must map to a <code>Fact</code> with a source and evidence; claims are flagged
+  <code>unbacked:</code> or <code>volatile:</code>; a draft passes only if the score clears
+  <code>GROUNDEDNESS_THRESHOLD</code> and nothing is unbacked.</li>
+<li><code>log_lead(...)</code> + <code>log_node</code> — the terminal step: persists a self-contained
+  <code>Lead</code> and routes it (<code>ready</code> saved / <code>review</code> enqueued / <code>disqualified</code> saved)
+  via the <code>Store</code>. Never auto-sends.</li>
+<li><code>build_pipeline()</code> — the compiled LangGraph <code>StateGraph</code> over <code>PipelineState</code>
+  with the two conditional gates (qualify → draft/log; verify → log decides
+  ready/review). Accepts injectable clients/store for offline testing.</li>
+<li><code>pitch-pilot run &lt;domain&gt; [--icp PATH]</code> CLI command — runs the full pipeline and
+  prints the qualification verdict, the draft, the verification score with flagged
+  claims, and where the lead was logged.</li>
+<li><code>QUALIFY_THRESHOLD</code> setting (default <code>0.5</code>); <code>examples/icp.sample.json</code> and
+  <code>load_icp()</code>.</li>
+</ul>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>Lead</code> now carries the run's artifacts (<code>qualification</code>, <code>draft</code>,
+  <code>verification</code>, <code>status</code>) so a persisted lead is self-contained.</li>
+<li><code>build_pipeline()</code> is implemented (was a P0 stub that raised
+  <code>NotImplementedError</code>).</li>
+<li><code>extract_facts(...)</code> takes an optional <code>company_domain</code> to tier each fact's
+  source.</li>
+</ul>
+<h2 id="020-2026-06-05">[0.2.0] — 2026-06-05<a class="headerlink" href="#020-2026-06-05" title="Permanent link">&para;</a></h2>
+<p><strong>P1 — Agentic research.</strong> The research node: given a domain, it gathers
+source-tagged, grounded <code>Fact</code>s across the dimensions an SDR cares about
+(overview, news, hiring, tech). The next search query is chosen by the LLM, not a
+fixed list — the loop is genuinely agentic, bounded by a hard query budget.</p>
+<h3 id="added_7">Added<a class="headerlink" href="#added_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>run_research(company, llm, search, settings)</code> — the agentic research loop:
+  seed-fetch the company site, then let the LLM planner choose each next search
+  query (<code>{"done", "reason", "next_query"}</code>) until it is satisfied or
+  <code>RESEARCH_MAX_QUERIES</code> is hit. Records non-fatal failures instead of crashing.</li>
+<li><code>extract_facts(...)</code> — the groundedness guard: extracts only claims the source
+  text supports, each with a verbatim <code>evidence</code> snippet, and drops any candidate
+  whose evidence is not a substring of the source (a cheap anti-hallucination
+  check). Capped per source.</li>
+<li><code>research_node(state)</code> — a thin LangGraph adapter that calls <code>run_research</code> and
+  returns <code>{"research": ResearchResult}</code>, ready for the pipeline to wire in.</li>
+<li><code>pitch-pilot research &lt;domain&gt;</code> CLI command — prints grounded facts grouped by
+  category (each with its source URL) and a summary line.</li>
+<li><code>Fact.evidence</code> — a short (<code>&lt;= 200</code> char) verbatim snippet from the source text
+  supporting the claim.</li>
+<li><code>ResearchResult.errors</code> — non-fatal problems (failed fetch, empty search,
+  extraction error) collected during a research run.</li>
+</ul>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Groundedness now has a second enforcement layer: evidence must appear in the
+  source (the extractor substring check), in addition to <code>Fact</code> requiring a
+  <code>source_url</code> by construction.</li>
+</ul>
+<h2 id="010-2026-06-05">[0.1.0] — 2026-06-05<a class="headerlink" href="#010-2026-06-05" title="Permanent link">&para;</a></h2>
+<p><strong>P0 — Foundation.</strong> The installable scaffold: typed contracts, swappable
+clients, configuration, a smoke test, the unit-test suite, and this documentation
+system.</p>
+<h3 id="added_8">Added<a class="headerlink" href="#added_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Typed data contracts (pydantic v2): <code>Fact</code> (enforces an <code>http(s)</code> <code>source_url</code>
+  at construction), <code>SearchResult</code>, <code>ICP</code>, <code>Company</code>, <code>Lead</code>, <code>ResearchResult</code>,
+  <code>QualificationResult</code>, <code>Draft</code>, <code>VerificationResult</code>.</li>
+<li><code>PipelineState</code> typed state contract and a documented <code>build_pipeline()</code> stub.</li>
+<li>Swappable external clients behind small interfaces: <code>LLMClient</code>
+  (<code>GeminiClient</code> default, <code>GroqClient</code> alternative), <code>SearchClient</code>
+  (<code>TavilyClient</code>), and <code>fetch_page()</code> (httpx + selectolax).</li>
+<li>Typed, fail-loud configuration (<code>Settings</code> / <code>get_settings</code>) via
+  pydantic-settings.</li>
+<li><code>Store</code> protocol with a file-backed <code>JsonStore</code> plus a human-review queue.</li>
+<li><code>pitch-pilot smoke</code> CLI command — the P0 acceptance gate.</li>
+<li>Unit test suite (no network) and the MkDocs Material documentation site with an
+  auto-generated API reference and a documentation-maintenance protocol
+  (<code>CLAUDE.md</code>).</li>
+</ul>
+<h3 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Hero guarantee: <strong>groundedness</strong> — no <code>Fact</code> may exist without a <code>source_url</code>.</li>
+<li>Deliberate scope: pitch-pilot never auto-sends, and LinkedIn scraping is out of
+  scope.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "content.code.copy", "content.action.edit", "toc.follow", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
