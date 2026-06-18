@@ -434,15 +434,16 @@ def run_research(
     # 2-5. Agentic loop: PLAN -> (stop?) -> SEARCH -> EXTRACT -> reflect.
     max_queries = settings.research_max_queries
     while True:
+        # Budget is a hard cap over the agentic choice. Checked *before* planning so
+        # we never spend a planner LLM call whose query we could not act on anyway.
+        if len(result.queries_run) >= max_queries:
+            logger.info("research hit query budget (%d); stopping.", max_queries)
+            break
         done, reason, next_query = _plan_next_query(
             company, result.facts, result.queries_run, llm
         )
         if done or not next_query:
             logger.info("research planner stopped: %s", reason or "done")
-            break
-        # Budget is a hard cap over the agentic choice.
-        if len(result.queries_run) >= max_queries:
-            logger.info("research hit query budget (%d); stopping.", max_queries)
             break
         if next_query in result.queries_run:
             logger.info("planner repeated query %r; stopping to avoid a loop.", next_query)

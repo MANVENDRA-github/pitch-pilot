@@ -1,6 +1,6 @@
 # Decisions (ADR log)
 
-> **Last updated:** 2026-06-13 · **Source files:** project-wide
+> **Last updated:** 2026-06-14 · **Source files:** project-wide
 
 Architecture Decision Records — one entry per significant decision, with the
 context that motivated it and the consequences we accept. Newest decisions are
@@ -274,7 +274,7 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
 - **Context:** The first full-eval attempt showed one company's research consuming
   ~40k tokens — feeding the extractor up to ~12,000 characters per source across
   ~13 extraction calls. That blew Groq's free-tier **100k tokens/day** cap after
-  ~2 companies, stalling the eval ([ADR-0011](#adr-0011-the-eval-set-includes-negatives--sparse-the-harness-caches-checkpoints-and-backs-off)).
+  ~2 companies, stalling the eval ([ADR-0011](#adr-0011-the-eval-set-includes-negatives-sparse-the-harness-caches-checkpoints-and-backs-off)).
   But the deeper point is that this cost is real in production too: most of those
   characters are boilerplate/nav/footer text that adds little grounded signal. A
   leaner research pass is both the quota fix **and** a genuine cost/latency
@@ -297,12 +297,22 @@ appended at the bottom. Format: **Date · Status · Context · Decision · Conse
   which can lower recall on facts buried deep in a long page; we accept that for the
   cost/latency/quota win and because the highest-value facts are near the top of a
   company's own pages. The caps are env-tunable for runs that want more depth.
+- **Update (2026-06-14):** The `RESEARCH_MAX_QUERIES` 4 → 3 part of this decision was
+  a **Groq-quota** choice (100k tokens/day) that was **never actually shipped** — the
+  project moved to **Cerebras** (~1M tokens/day, the evaluated and shipped provider —
+  [ADR-0013](#adr-0013-add-cerebras-as-a-provider-so-the-eval-runs-in-one-session-on-its-1m-tokensday-free-tier)),
+  where a 4th query is easily affordable, and the eval tables and README demos were
+  in fact run at **4**. To remove the eval-vs-default mismatch, the **default query
+  budget is now 4** (the depth everything actually uses). The other lean levers —
+  `RESEARCH_MAX_PAGE_CHARS` (3500, the dominant token lever) and
+  `RESEARCH_MAX_FACTS_PER_SOURCE` (5) — are unchanged; depth stays lean where it
+  matters for cost, and `RESEARCH_MAX_QUERIES` is still env-tunable.
 
 ## ADR-0013 — Add Cerebras as a provider so the eval runs in one session on its ~1M tokens/day free tier
 
 - **Date:** 2026-06-13
 - **Status:** Accepted
-- **Context:** Even after leaning out research depth ([ADR-0012](#adr-0012-research-depth-is-leaned-out-by-default-quota--costlatency-and-the-eval-runs-at-shipping-depth)),
+- **Context:** Even after leaning out research depth ([ADR-0012](#adr-0012-research-depth-is-leaned-out-by-default-quota-costlatency-and-the-eval-runs-at-shipping-depth)),
   the full eval (~17 companies) needs more tokens than Groq's free **100k/day** cap
   allows in a single day, so a complete, reproducible run kept spilling across days
   (and stalling on per-minute limits). Gemini's free tier is even tighter (20
